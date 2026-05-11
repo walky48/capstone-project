@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
 import { Search, Plus, ChevronUp, ChevronDown, Trash2, Copy, ExternalLink, Filter } from 'lucide-react'
 import { SCENARIOS } from '../data/scenarios'
+import { useLang } from '../contexts/LanguageContext'
 
-function Badge({ tag }) {
+function Badge({ tag, filters, filterKeys }) {
   const cls = { Recommended: 'badge-recommended', Active: 'badge-active', Draft: 'badge-draft' }[tag] || 'badge-draft'
-  return <span className={`badge ${cls}`}>{tag.toUpperCase()}</span>
+  const label = filters[filterKeys.indexOf(tag)] || tag
+  return <span className={`badge ${cls}`}>{label.toUpperCase()}</span>
 }
 
 function SelfSuffBar({ value }) {
@@ -20,6 +22,7 @@ function SelfSuffBar({ value }) {
 }
 
 export default function Scenarios() {
+  const { t } = useLang()
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState('All')
@@ -27,21 +30,12 @@ export default function Scenarios() {
   const [selected, setSelected] = useState(null)
 
   useEffect(() => {
-    const t = setTimeout(() => setLoading(false), 650)
-    return () => clearTimeout(t)
+    const timer = setTimeout(() => setLoading(false), 650)
+    return () => clearTimeout(timer)
   }, [])
 
-  const filters = ['All', 'Recommended', 'Active', 'Draft']
-  const cols = [
-    { key: 'name', label: 'Scenario Name' },
-    { key: 'pv', label: 'PV (kWp)' },
-    { key: 'bess', label: 'BESS (kWh)' },
-    { key: 'selfSuff', label: 'Self-Sufficiency' },
-    { key: 'gridImport', label: 'Grid (kWh/day)' },
-    { key: 'co2', label: 'CO₂ Sav. (kg/day)' },
-    { key: 'lcoe', label: 'LCOE (₺/kWh)' },
-    { key: 'payback', label: 'Payback (yrs)' },
-  ]
+  const colKeys = ['name', 'pv', 'bess', 'selfSuff', 'gridImport', 'co2', 'lcoe', 'payback']
+  const cols = colKeys.map((key, i) => ({ key, label: t.scenarios.cols[i] }))
 
   let rows = SCENARIOS
     .filter(s => filter === 'All' || s.tag === filter)
@@ -54,16 +48,27 @@ export default function Scenarios() {
   const toggleSort = (key) => setSort(s => ({ key, dir: s.key === key && s.dir === 'asc' ? 'desc' : 'asc' }))
   const sel = selected != null ? SCENARIOS.find(s => s.id === selected) : null
 
+  const detailRows = sel ? [
+    [t.scenarios.detail.pvCapacity, `${sel.pv} kWp`],
+    [t.scenarios.detail.bessCapacity, `${sel.bess} kWh`],
+    [t.scenarios.detail.selfSufficiency, `${sel.selfSuff}%`],
+    [t.scenarios.detail.gridImport, `${sel.gridImport} kWh/day`],
+    [t.scenarios.detail.co2Savings, `${sel.co2} kg/day`],
+    [t.scenarios.detail.lcoe, `₺${sel.lcoe}/kWh`],
+    [t.scenarios.detail.capex, `₺${sel.capex.toLocaleString()}`],
+    [t.scenarios.detail.payback, `${sel.payback} yrs`],
+  ] : []
+
   return (
     <div className="page-wrap">
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24 }}>
         <div>
-          <div className="section-label">Simulation Results</div>
-          <h1 className="page-title">Scenarios</h1>
-          <p style={{ color: '#64748b', fontSize: 13, marginTop: 2 }}>{rows.length} scenarios · BAU Kemerburgaz</p>
+          <div className="section-label">{t.scenarios.sectionLabel}</div>
+          <h1 className="page-title">{t.scenarios.title}</h1>
+          <p style={{ color: '#64748b', fontSize: 13, marginTop: 2 }}>{rows.length} {t.scenarios.subtitleSuffix}</p>
         </div>
         <button className="btn btn-primary">
-          <Plus size={15} /> New Scenario
+          <Plus size={15} /> {t.scenarios.newScenario}
         </button>
       </div>
 
@@ -73,20 +78,20 @@ export default function Scenarios() {
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Search scenarios..."
+            placeholder={t.scenarios.searchPlaceholder}
             style={{ width: '100%', padding: '8px 12px 8px 32px', border: '1px solid #e2e8f0', borderRadius: 7, fontSize: 13, outline: 'none', background: '#fff' }}
           />
         </div>
         <div style={{ display: 'flex', background: '#fff', border: '1px solid #e2e8f0', borderRadius: 7, overflow: 'hidden' }}>
-          {filters.map(f => (
-            <button key={f} onClick={() => setFilter(f)} style={{
+          {t.scenarios.filterKeys.map((fk, i) => (
+            <button key={fk} onClick={() => setFilter(fk)} style={{
               padding: '7px 14px', border: 'none', borderRight: '1px solid #e2e8f0', cursor: 'pointer', fontSize: 12, fontWeight: 500,
-              background: filter === f ? '#eff6ff' : '#fff', color: filter === f ? '#2563eb' : '#64748b'
-            }}>{f}</button>
+              background: filter === fk ? '#eff6ff' : '#fff', color: filter === fk ? '#2563eb' : '#64748b'
+            }}>{t.scenarios.filters[i]}</button>
           ))}
         </div>
         <div style={{ flex: 1 }} />
-        <button className="btn btn-outline"><Filter size={13} /> Filter</button>
+        <button className="btn btn-outline"><Filter size={13} /> {t.scenarios.filter}</button>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: sel ? '1fr 340px' : '1fr', gap: 16 }}>
@@ -112,7 +117,7 @@ export default function Scenarios() {
               {loading ? (
                 <tr>
                   <td colSpan={10} style={{ textAlign: 'center', padding: '40px', color: '#94a3b8', fontSize: 13 }}>
-                    Loading...
+                    {t.scenarios.loading}
                   </td>
                 </tr>
               ) : rows.map((row, i) => (
@@ -123,7 +128,9 @@ export default function Scenarios() {
                   onMouseEnter={e => { if (selected !== row.id) e.currentTarget.style.background = '#f8fafc' }}
                   onMouseLeave={e => { e.currentTarget.style.background = selected === row.id ? '#eff6ff' : i % 2 === 0 ? '#fff' : '#fafbfc' }}
                 >
-                  <td style={{ padding: '13px 14px' }}><Badge tag={row.tag} /></td>
+                  <td style={{ padding: '13px 14px' }}>
+                    <Badge tag={row.tag} filters={t.scenarios.filters} filterKeys={t.scenarios.filterKeys} />
+                  </td>
                   <td>
                     <div style={{ fontSize: 13, fontWeight: 600, color: '#0f172a' }}>{row.name}</div>
                     <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>ID: SC-00{row.id}</div>
@@ -152,27 +159,18 @@ export default function Scenarios() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <div>
                 <div style={{ fontSize: 14, fontWeight: 700, color: '#0f172a' }}>{sel.name}</div>
-                <Badge tag={sel.tag} />
+                <Badge tag={sel.tag} filters={t.scenarios.filters} filterKeys={t.scenarios.filterKeys} />
               </div>
               <button onClick={() => setSelected(null)} style={{ border: 'none', background: '#f1f5f9', borderRadius: 6, padding: '6px 10px', cursor: 'pointer', fontSize: 12, color: '#64748b' }}>✕</button>
             </div>
-            {[
-              ['PV Capacity', `${sel.pv} kWp`],
-              ['BESS Capacity', `${sel.bess} kWh`],
-              ['Self-Sufficiency', `${sel.selfSuff}%`],
-              ['Grid Import', `${sel.gridImport} kWh/day`],
-              ['CO₂ Savings', `${sel.co2} kg/day`],
-              ['LCOE', `₺${sel.lcoe}/kWh`],
-              ['CAPEX', `₺${sel.capex.toLocaleString()}`],
-              ['Payback', `${sel.payback} yrs`],
-            ].map(([k, v]) => (
+            {detailRows.map(([k, v]) => (
               <div key={k} className="stat-row">
                 <span className="stat-label">{k}</span>
                 <span style={{ fontSize: 13, fontWeight: 600, color: '#0f172a' }}>{v}</span>
               </div>
             ))}
             <button className="btn btn-primary" style={{ width: '100%', marginTop: 16, justifyContent: 'center' }}>
-              <ExternalLink size={14} /> Detailed View
+              <ExternalLink size={14} /> {t.scenarios.detail.detailedView}
             </button>
           </div>
         )}

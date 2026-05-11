@@ -1,14 +1,15 @@
 import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import { LayoutDashboard, Settings, ListChecks, GitCompare, TrendingUp, FileText, LogOut, Menu, ChevronRight, SlidersHorizontal, X, Bell, Moon, Info, User, Mail, Lock, Eye, EyeOff, Check } from 'lucide-react'
+import { useLang } from '../contexts/LanguageContext'
 
-const nav = [
-  { label: 'Dashboard', icon: LayoutDashboard, to: '/dashboard' },
-  { label: 'Project Setup', icon: Settings, to: '/setup' },
-  { label: 'Scenarios', icon: ListChecks, to: '/scenarios' },
-  { label: 'Comparison', icon: GitCompare, to: '/compare' },
-  { label: 'Forecasting', icon: TrendingUp, to: '/forecast' },
-  { label: 'Reports', icon: FileText, to: '/reports' },
+const navRoutes = [
+  { key: 'dashboard', icon: LayoutDashboard, to: '/dashboard' },
+  { key: 'setup', icon: Settings, to: '/setup' },
+  { key: 'scenarios', icon: ListChecks, to: '/scenarios' },
+  { key: 'compare', icon: GitCompare, to: '/compare' },
+  { key: 'forecast', icon: TrendingUp, to: '/forecast' },
+  { key: 'reports', icon: FileText, to: '/reports' },
 ]
 
 function Toggle({ checked, onChange }) {
@@ -73,6 +74,7 @@ function FieldInput({ label, icon: Icon, value, onChange, type = 'text', placeho
 }
 
 function ProfileModal({ onClose, onProfileSave }) {
+  const { t } = useLang()
   const [name, setName] = useState(() => localStorage.getItem('profile_name') || 'Volkan Şahin')
   const [email, setEmail] = useState(() => localStorage.getItem('profile_email') || 'volkansahin499@gmail.com')
   const [currentPass, setCurrentPass] = useState('')
@@ -88,9 +90,9 @@ function ProfileModal({ onClose, onProfileSave }) {
 
   const handleSave = () => {
     if (newPass || currentPass || confirmPass) {
-      if (!currentPass) { setPassError('Enter your current password.'); return }
-      if (newPass.length < 6) { setPassError('New password must be at least 6 characters.'); return }
-      if (newPass !== confirmPass) { setPassError('Passwords do not match.'); return }
+      if (!currentPass) { setPassError(t.profile.errors.enterCurrentPass); return }
+      if (newPass.length < 6) { setPassError(t.profile.errors.minLength); return }
+      if (newPass !== confirmPass) { setPassError(t.profile.errors.noMatch); return }
       setCurrentPass(''); setNewPass(''); setConfirmPass('')
     }
     setPassError('')
@@ -122,8 +124,8 @@ function ProfileModal({ onClose, onProfileSave }) {
               <User size={15} color="#2563eb" />
             </div>
             <div>
-              <div style={{ fontSize: 15, fontWeight: 700, color: '#0f172a' }}>Profile</div>
-              <div style={{ fontSize: 11, color: '#94a3b8' }}>Edit your account details</div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: '#0f172a' }}>{t.profile.title}</div>
+              <div style={{ fontSize: 11, color: '#94a3b8' }}>{t.profile.subtitle}</div>
             </div>
           </div>
           <button onClick={onClose} className="modal-close"><X size={15} /></button>
@@ -134,21 +136,21 @@ function ProfileModal({ onClose, onProfileSave }) {
             {initials}
           </div>
           <div style={{ fontSize: 15, fontWeight: 600, color: '#0f172a' }}>{name}</div>
-          <div style={{ fontSize: 12, color: '#64748b', marginTop: 3 }}>Software Eng. · BAU</div>
+          <div style={{ fontSize: 12, color: '#64748b', marginTop: 3 }}>{t.profile.role}</div>
         </div>
 
         <div className="modal-body" style={{ padding: '22px' }}>
-          <SectionLabel>Account Info</SectionLabel>
-          <FieldInput label="Display Name" icon={User} value={name} onChange={e => setName(e.target.value)} placeholder="Your full name" />
-          <FieldInput label="Email Address" icon={Mail} value={email} onChange={e => setEmail(e.target.value)} placeholder="your@email.com" />
+          <SectionLabel>{t.profile.accountInfo}</SectionLabel>
+          <FieldInput label={t.profile.displayName} icon={User} value={name} onChange={e => setName(e.target.value)} placeholder="Your full name" />
+          <FieldInput label={t.profile.emailAddress} icon={Mail} value={email} onChange={e => setEmail(e.target.value)} placeholder="your@email.com" />
 
           <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: 18, marginTop: 4 }}>
             <SectionLabel>
-              <Lock size={10} style={{ display: 'inline', marginRight: 5 }} />Change Password
+              <Lock size={10} style={{ display: 'inline', marginRight: 5 }} />{t.profile.changePassword}
             </SectionLabel>
-            <FieldInput label="Current Password" icon={Lock} value={currentPass} onChange={e => setCurrentPass(e.target.value)} type={showCurrent ? 'text' : 'password'} placeholder="Enter current password" rightEl={<EyeBtn show={showCurrent} onToggle={() => setShowCurrent(v => !v)} />} />
-            <FieldInput label="New Password" icon={Lock} value={newPass} onChange={e => setNewPass(e.target.value)} type={showNew ? 'text' : 'password'} placeholder="Enter new password" rightEl={<EyeBtn show={showNew} onToggle={() => setShowNew(v => !v)} />} />
-            <FieldInput label="Confirm New Password" icon={Lock} value={confirmPass} onChange={e => setConfirmPass(e.target.value)} type={showConfirm ? 'text' : 'password'} placeholder="Repeat new password" rightEl={<EyeBtn show={showConfirm} onToggle={() => setShowConfirm(v => !v)} />} />
+            <FieldInput label={t.profile.currentPassword} icon={Lock} value={currentPass} onChange={e => setCurrentPass(e.target.value)} type={showCurrent ? 'text' : 'password'} placeholder="••••••••" rightEl={<EyeBtn show={showCurrent} onToggle={() => setShowCurrent(v => !v)} />} />
+            <FieldInput label={t.profile.newPassword} icon={Lock} value={newPass} onChange={e => setNewPass(e.target.value)} type={showNew ? 'text' : 'password'} placeholder="••••••••" rightEl={<EyeBtn show={showNew} onToggle={() => setShowNew(v => !v)} />} />
+            <FieldInput label={t.profile.confirmPassword} icon={Lock} value={confirmPass} onChange={e => setConfirmPass(e.target.value)} type={showConfirm ? 'text' : 'password'} placeholder="••••••••" rightEl={<EyeBtn show={showConfirm} onToggle={() => setShowConfirm(v => !v)} />} />
           </div>
 
           {passError && (
@@ -160,7 +162,7 @@ function ProfileModal({ onClose, onProfileSave }) {
             onClick={handleSave}
             style={{ width: '100%', padding: '10px', borderRadius: 8, border: 'none', cursor: 'pointer', background: saved ? '#10b981' : '#2563eb', color: '#fff', fontSize: 13, fontWeight: 600, transition: 'background 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, marginTop: 4 }}
           >
-            {saved ? <><Check size={15} /> Saved!</> : 'Save Changes'}
+            {saved ? <><Check size={15} /> {t.profile.saved}</> : t.profile.save}
           </button>
         </div>
       </div>
@@ -169,15 +171,24 @@ function ProfileModal({ onClose, onProfileSave }) {
 }
 
 function SettingsModal({ onClose }) {
+  const { lang, setLang, t } = useLang()
   const [emailAlerts, setEmailAlerts] = useState(true)
   const [dashboardAlerts, setDashboardAlerts] = useState(true)
   const [darkMode, setDarkMode] = useState(() => document.documentElement.getAttribute('data-theme') === 'dark')
-  const [language, setLanguage] = useState('English')
+  const [pendingLang, setPendingLang] = useState(lang)
+  const [saved, setSaved] = useState(false)
 
   const handleDarkMode = (val) => {
     setDarkMode(val)
     document.documentElement.setAttribute('data-theme', val ? 'dark' : 'light')
     localStorage.setItem('theme', val ? 'dark' : 'light')
+  }
+
+  const handleSave = () => {
+    setLang(pendingLang)
+    localStorage.setItem('language', pendingLang)
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2000)
   }
 
   return (
@@ -190,8 +201,8 @@ function SettingsModal({ onClose }) {
               <SlidersHorizontal size={16} color="#2563eb" />
             </div>
             <div>
-              <div style={{ fontSize: 15, fontWeight: 700, color: '#0f172a' }}>Settings</div>
-              <div style={{ fontSize: 11, color: '#94a3b8' }}>Preferences & account</div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: '#0f172a' }}>{t.settings.title}</div>
+              <div style={{ fontSize: 11, color: '#94a3b8' }}>{t.settings.subtitle}</div>
             </div>
           </div>
           <button onClick={onClose} className="modal-close"><X size={15} /></button>
@@ -199,28 +210,37 @@ function SettingsModal({ onClose }) {
 
         <div className="modal-body">
           <div className="modal-section">
-            <SectionLabel><Moon size={10} style={{ display: 'inline', marginRight: 5 }} />Appearance</SectionLabel>
+            <SectionLabel><Moon size={10} style={{ display: 'inline', marginRight: 5 }} />{t.settings.appearance}</SectionLabel>
             <SettingsRow
-              label="Language"
-              desc="Interface display language"
+              label={t.settings.language}
+              desc={t.settings.languageDesc}
               right={
-                <select value={language} onChange={e => setLanguage(e.target.value)} style={{ padding: '5px 10px', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 12, color: '#0f172a', background: '#fff', cursor: 'pointer', outline: 'none' }}>
-                  <option>English</option>
-                  <option>Turkish</option>
+                <select value={pendingLang} onChange={e => setPendingLang(e.target.value)} style={{ padding: '5px 10px', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 12, color: '#0f172a', background: '#fff', cursor: 'pointer', outline: 'none' }}>
+                  <option value="en">{t.settings.langOptions.en}</option>
+                  <option value="tr">{t.settings.langOptions.tr}</option>
                 </select>
               }
             />
-            <SettingsRow label="Dark Mode" desc="Switch to dark interface theme" right={<Toggle checked={darkMode} onChange={handleDarkMode} />} />
+            <SettingsRow label={t.settings.darkMode} desc={t.settings.darkModeDesc} right={<Toggle checked={darkMode} onChange={handleDarkMode} />} />
           </div>
 
           <div className="modal-section">
-            <SectionLabel><Bell size={10} style={{ display: 'inline', marginRight: 5 }} />Notifications</SectionLabel>
-            <SettingsRow label="Email Alerts" desc="Receive simulation results via email" right={<Toggle checked={emailAlerts} onChange={setEmailAlerts} />} />
-            <SettingsRow label="Dashboard Alerts" desc="Show in-app warnings and updates" right={<Toggle checked={dashboardAlerts} onChange={setDashboardAlerts} />} />
+            <SectionLabel><Bell size={10} style={{ display: 'inline', marginRight: 5 }} />{t.settings.notifications}</SectionLabel>
+            <SettingsRow label={t.settings.emailAlerts} desc={t.settings.emailAlertsDesc} right={<Toggle checked={emailAlerts} onChange={setEmailAlerts} />} />
+            <SettingsRow label={t.settings.dashboardAlerts} desc={t.settings.dashboardAlertsDesc} right={<Toggle checked={dashboardAlerts} onChange={setDashboardAlerts} />} />
+          </div>
+
+          <div className="modal-section">
+            <button
+              onClick={handleSave}
+              style={{ width: '100%', padding: '10px', borderRadius: 8, border: 'none', cursor: 'pointer', background: saved ? '#10b981' : '#2563eb', color: '#fff', fontSize: 13, fontWeight: 600, transition: 'background 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}
+            >
+              {saved ? <><Check size={15} /> {t.settings.saved}</> : t.settings.save}
+            </button>
           </div>
 
           <div className="modal-section-alt">
-            <SectionLabel><Info size={10} style={{ display: 'inline', marginRight: 5 }} />About</SectionLabel>
+            <SectionLabel><Info size={10} style={{ display: 'inline', marginRight: 5 }} />{t.settings.about}</SectionLabel>
             {[
               ['Platform', 'CEMS Dashboard'],
               ['Version', '1.0.0'],
@@ -240,11 +260,13 @@ function SettingsModal({ onClose }) {
 }
 
 export default function Sidebar({ onLogout, open, onToggle }) {
+  const { t } = useLang()
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
   const [profileName, setProfileName] = useState(() => localStorage.getItem('profile_name') || 'Volkan Şahin')
 
   const initials = profileName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
+  const nav = navRoutes.map(r => ({ ...r, label: t.nav[r.key] }))
 
   return (
     <>
@@ -309,7 +331,7 @@ export default function Sidebar({ onLogout, open, onToggle }) {
                 onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = '#e2e8f0' }}
                 onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#64748b' }}
               >
-                <SlidersHorizontal size={15} /> Settings
+                <SlidersHorizontal size={15} /> {t.nav.settings}
               </button>
               <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', marginBottom: 8 }} />
               <button
@@ -321,7 +343,7 @@ export default function Sidebar({ onLogout, open, onToggle }) {
                 <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'linear-gradient(135deg,#2563eb,#7c3aed)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 12, fontWeight: 600, flexShrink: 0 }}>{initials}</div>
                 <div style={{ textAlign: 'left' }}>
                   <div style={{ color: '#e2e8f0', fontSize: 12, fontWeight: 500, whiteSpace: 'nowrap' }}>{profileName}</div>
-                  <div style={{ color: '#475569', fontSize: 10 }}>Software Eng.</div>
+                  <div style={{ color: '#475569', fontSize: 10 }}>{t.profile.role.split('·')[0].trim()}</div>
                 </div>
               </button>
               <button
@@ -330,7 +352,7 @@ export default function Sidebar({ onLogout, open, onToggle }) {
                 onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.1)'; e.currentTarget.style.color = '#f87171' }}
                 onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#64748b' }}
               >
-                <LogOut size={15} /> Sign Out
+                <LogOut size={15} /> {t.nav.signOut}
               </button>
             </>
           ) : (

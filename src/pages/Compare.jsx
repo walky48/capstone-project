@@ -1,33 +1,39 @@
 import { RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Legend } from 'recharts'
 import { SCENARIOS } from '../data/scenarios'
 import Card from '../components/ui/Card'
+import { useLang } from '../contexts/LanguageContext'
 
 const compareScenarios = [2, 1, 3].map(id => SCENARIOS.find(s => s.id === id))
 
-const radarData = [
-  { axis: 'Self-Sufficiency', a: 74, b: 48, c: 94 },
-  { axis: 'Economy', a: 70, b: 90, c: 40 },
-  { axis: 'CO₂ Savings', a: 72, b: 28, c: 100 },
-  { axis: 'Reliability', a: 75, b: 50, c: 95 },
-  { axis: 'Feasibility', a: 80, b: 85, c: 55 },
-  { axis: 'Sustainability', a: 76, b: 52, c: 92 },
+const radarValues = [
+  { a: 74, b: 48, c: 94 },
+  { a: 70, b: 90, c: 40 },
+  { a: 72, b: 28, c: 100 },
+  { a: 75, b: 50, c: 95 },
+  { a: 80, b: 85, c: 55 },
+  { a: 76, b: 52, c: 92 },
 ]
 
-const metrics = [
-  { key: 'selfSuff', label: 'Self-Sufficiency (%)', max: 100, unit: '%', color: '#10b981', goodHigh: true },
-  { key: 'co2', label: 'CO₂ Savings (kg/day)', max: 2500, unit: 'kg', color: '#0891b2', goodHigh: true },
-  { key: 'gridImport', label: 'Grid Import (kWh/day)', max: 2500, unit: 'kWh', color: '#dc2626', goodHigh: false },
-  { key: 'lcoe', label: 'LCOE (₺/kWh)', max: 0.25, unit: '₺', color: '#7c3aed', goodHigh: false },
-  { key: 'payback', label: 'Payback (yrs)', max: 20, unit: 'yrs', color: '#f59e0b', goodHigh: false },
+const metricsBase = [
+  { key: 'selfSuff', max: 100, unit: '%', color: '#10b981', goodHigh: true },
+  { key: 'co2', max: 2500, unit: 'kg', color: '#0891b2', goodHigh: true },
+  { key: 'gridImport', max: 2500, unit: 'kWh', color: '#dc2626', goodHigh: false },
+  { key: 'lcoe', max: 0.25, unit: '₺', color: '#7c3aed', goodHigh: false },
+  { key: 'payback', max: 20, unit: 'yrs', color: '#f59e0b', goodHigh: false },
 ]
 
 export default function Compare() {
+  const { t } = useLang()
+
+  const radarData = t.compare.radarAxes.map((axis, i) => ({ axis, ...radarValues[i] }))
+  const metrics = metricsBase.map((m, i) => ({ ...m, label: t.compare.metrics[i] }))
+
   return (
     <div className="page-wrap">
       <div style={{ marginBottom: 24 }}>
-        <div className="section-label">Scenario Analysis</div>
-        <h1 className="page-title">Comparison View</h1>
-        <p style={{ color: '#64748b', fontSize: 13, marginTop: 2 }}>Side-by-side comparison of 3 scenarios</p>
+        <div className="section-label">{t.compare.sectionLabel}</div>
+        <h1 className="page-title">{t.compare.title}</h1>
+        <p style={{ color: '#64748b', fontSize: 13, marginTop: 2 }}>{t.compare.subtitle}</p>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 20 }}>
@@ -35,7 +41,7 @@ export default function Compare() {
           <Card key={sc.id} style={{ padding: '20px', borderColor: idx === 0 ? sc.color : '#e2e8f0', borderWidth: idx === 0 ? 2 : 1, position: 'relative', overflow: 'visible' }}>
             {idx === 0 && (
               <div style={{ position: 'absolute', top: -10, left: 16, background: sc.color, color: '#fff', fontSize: 10, fontWeight: 700, padding: '3px 12px', borderRadius: 10, letterSpacing: '0.05em' }}>
-                ★ RECOMMENDED
+                {t.compare.recommended}
               </div>
             )}
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 4 }}>
@@ -64,8 +70,8 @@ export default function Compare() {
       </div>
 
       <Card style={{ padding: '20px' }}>
-        <div style={{ fontSize: 14, fontWeight: 600, color: '#0f172a', marginBottom: 4 }}>Multi-Dimensional Comparison</div>
-        <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 16 }}>6-axis radar analysis · normalized values</div>
+        <div style={{ fontSize: 14, fontWeight: 600, color: '#0f172a', marginBottom: 4 }}>{t.compare.radarTitle}</div>
+        <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 16 }}>{t.compare.radarSub}</div>
         <ResponsiveContainer width="100%" height={320}>
           <RadarChart data={radarData} margin={{ top: 10, right: 40, left: 40, bottom: 10 }}>
             <PolarGrid stroke="#e2e8f0" />
