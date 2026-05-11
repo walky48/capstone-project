@@ -72,9 +72,9 @@ function FieldInput({ label, icon: Icon, value, onChange, type = 'text', placeho
   )
 }
 
-function ProfileModal({ onClose }) {
-  const [name, setName] = useState('Volkan Şahin')
-  const [email, setEmail] = useState('volkansahin499@gmail.com')
+function ProfileModal({ onClose, onProfileSave }) {
+  const [name, setName] = useState(() => localStorage.getItem('profile_name') || 'Volkan Şahin')
+  const [email, setEmail] = useState(() => localStorage.getItem('profile_email') || 'volkansahin499@gmail.com')
   const [currentPass, setCurrentPass] = useState('')
   const [newPass, setNewPass] = useState('')
   const [confirmPass, setConfirmPass] = useState('')
@@ -82,10 +82,21 @@ function ProfileModal({ onClose }) {
   const [showNew, setShowNew] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [passError, setPassError] = useState('')
 
   const initials = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
 
   const handleSave = () => {
+    if (newPass || currentPass || confirmPass) {
+      if (!currentPass) { setPassError('Enter your current password.'); return }
+      if (newPass.length < 6) { setPassError('New password must be at least 6 characters.'); return }
+      if (newPass !== confirmPass) { setPassError('Passwords do not match.'); return }
+      setCurrentPass(''); setNewPass(''); setConfirmPass('')
+    }
+    setPassError('')
+    localStorage.setItem('profile_name', name)
+    localStorage.setItem('profile_email', email)
+    onProfileSave(name)
     setSaved(true)
     setTimeout(() => setSaved(false), 2200)
   }
@@ -140,6 +151,11 @@ function ProfileModal({ onClose }) {
             <FieldInput label="Confirm New Password" icon={Lock} value={confirmPass} onChange={e => setConfirmPass(e.target.value)} type={showConfirm ? 'text' : 'password'} placeholder="Repeat new password" rightEl={<EyeBtn show={showConfirm} onToggle={() => setShowConfirm(v => !v)} />} />
           </div>
 
+          {passError && (
+            <div style={{ fontSize: 12, color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 7, padding: '8px 12px', marginBottom: 10 }}>
+              {passError}
+            </div>
+          )}
           <button
             onClick={handleSave}
             style={{ width: '100%', padding: '10px', borderRadius: 8, border: 'none', cursor: 'pointer', background: saved ? '#10b981' : '#2563eb', color: '#fff', fontSize: 13, fontWeight: 600, transition: 'background 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, marginTop: 4 }}
@@ -226,11 +242,14 @@ function SettingsModal({ onClose }) {
 export default function Sidebar({ onLogout, open, onToggle }) {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
+  const [profileName, setProfileName] = useState(() => localStorage.getItem('profile_name') || 'Volkan Şahin')
+
+  const initials = profileName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
 
   return (
     <>
       {settingsOpen && <SettingsModal onClose={() => setSettingsOpen(false)} />}
-      {profileOpen && <ProfileModal onClose={() => setProfileOpen(false)} />}
+      {profileOpen && <ProfileModal onClose={() => setProfileOpen(false)} onProfileSave={name => setProfileName(name)} />}
 
       <aside style={{
         width: open ? 240 : 52,
@@ -299,9 +318,9 @@ export default function Sidebar({ onLogout, open, onToggle }) {
                 onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)' }}
                 onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
               >
-                <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'linear-gradient(135deg,#2563eb,#7c3aed)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 12, fontWeight: 600, flexShrink: 0 }}>VS</div>
+                <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'linear-gradient(135deg,#2563eb,#7c3aed)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 12, fontWeight: 600, flexShrink: 0 }}>{initials}</div>
                 <div style={{ textAlign: 'left' }}>
-                  <div style={{ color: '#e2e8f0', fontSize: 12, fontWeight: 500, whiteSpace: 'nowrap' }}>Volkan Şahin</div>
+                  <div style={{ color: '#e2e8f0', fontSize: 12, fontWeight: 500, whiteSpace: 'nowrap' }}>{profileName}</div>
                   <div style={{ color: '#475569', fontSize: 10 }}>Software Eng.</div>
                 </div>
               </button>
@@ -330,7 +349,7 @@ export default function Sidebar({ onLogout, open, onToggle }) {
                 onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 0 0 3px rgba(37,99,235,0.35)' }}
                 onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 0 0 0 transparent' }}
               >
-                VS
+                {initials}
               </button>
               <button
                 onClick={onLogout}
