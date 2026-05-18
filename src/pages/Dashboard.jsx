@@ -10,24 +10,24 @@ const kpisBase = [
   { key: 'pvGeneration', value: '4,280', unit: 'kWh/day', sub: '+12% this month', icon: Sun, color: '#f59e0b', bg: '#fffbeb', border: '#fde68a' },
   { key: 'energyDemand', value: '5,840', unit: 'kWh/day', sub: '-3% this month', icon: Zap, color: '#0891b2', bg: '#ecfeff', border: '#a5f3fc' },
   { key: 'selfSufficiency', value: '73.2', unit: '%', sub: 'Target: 80%', icon: Battery, color: '#7c3aed', bg: '#f5f3ff', border: '#ddd6fe' },
-  { key: 'gridImport', value: '1,560', unit: 'kWh/day', sub: '-18% saved', icon: TrendingDown, color: '#dc2626', bg: '#fef2f2', border: '#fecaca' },
+  { key: 'gridImport', value: '1,560', unit: 'kWh/day', sub: 'vs. grid-only baseline', icon: TrendingDown, color: '#dc2626', bg: '#fef2f2', border: '#fecaca' },
 ]
 
-const flows = [
-  { label: 'PV → Load', value: 3120, pct: 73, color: '#f59e0b' },
-  { label: 'PV → BESS', value: 860, pct: 20, color: '#7c3aed' },
-  { label: 'BESS → Load', value: 420, pct: 10, color: '#7c3aed' },
-  { label: 'Grid → Load', value: 1560, pct: 27, color: '#dc2626' },
-  { label: 'PV → Grid', value: 300, pct: 7, color: '#10b981' },
+const flowsBase = [
+  { key: 'pvToLoad', value: 3120, pct: 73, color: '#f59e0b' },
+  { key: 'pvToBess', value: 860, pct: 20, color: '#7c3aed' },
+  { key: 'bessToLoad', value: 420, pct: 10, color: '#7c3aed' },
+  { key: 'gridToLoad', value: 1560, pct: 27, color: '#dc2626' },
+  { key: 'pvToGrid', value: 300, pct: 7, color: '#10b981' },
 ]
 
 const quickStatsBase = [
-  { key: 'capacityFactor', value: '18.4%', color: '#f59e0b' },
+  { key: 'specificYield', value: '1,420 kWh/kWp', color: '#f59e0b' },
   { key: 'lcoe', value: '₺0.14/kWh', color: '#7c3aed' },
-  { key: 'co2Savings', value: '1,240 kg/day', color: '#10b981' },
+  { key: 'co2Avoided', value: '1,240 kg/day', color: '#10b981' },
   { key: 'paybackPeriod', value: '11.8 yrs', color: '#0891b2' },
-  { key: 'peakDemand', value: '486 kW', color: '#dc2626' },
-  { key: 'pvArea', value: '3,200 m²', color: '#64748b' },
+  { key: 'panelModel', value: 'JKM570N · 22.1%', color: '#64748b' },
+  { key: 'gridCO2', value: '452 g CO₂/kWh', color: '#dc2626' },
 ]
 
 export default function Dashboard() {
@@ -37,6 +37,7 @@ export default function Dashboard() {
   const xKey = range >= 2 ? 'month' : 'hour'
 
   const kpis = kpisBase.map(k => ({ ...k, label: t.dashboard.kpis[k.key] }))
+  const flows = flowsBase.map((f, i) => ({ ...f, label: t.dashboard.flows[i] }))
   const quickStats = quickStatsBase.map(s => ({ ...s, label: t.dashboard.stats[s.key] }))
 
   return (
@@ -82,7 +83,7 @@ export default function Dashboard() {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
             <div>
               <div style={{ fontSize: 14, fontWeight: 600, color: '#0f172a', marginBottom: 2 }}>{t.dashboard.energyBalance}</div>
-              <div style={{ fontSize: 12, color: '#94a3b8' }}>{t.dashboard.energyBalanceSub}</div>
+              <div style={{ fontSize: 12, color: '#94a3b8' }}>{t.dashboard.energyBalanceSub} · kW</div>
             </div>
             <div className="tab-group">
               {t.dashboard.ranges.map((r, i) => (
@@ -116,27 +117,47 @@ export default function Dashboard() {
 
         <Card style={{ padding: '20px' }}>
           <div style={{ fontSize: 14, fontWeight: 600, color: '#0f172a', marginBottom: 4 }}>{t.dashboard.energyFlow}</div>
-          <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 18 }}>{t.dashboard.energyFlowSub}</div>
+          <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 10 }}>{t.dashboard.energyFlowSub}</div>
+          <div style={{ fontSize: 11, color: '#92400e', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 5, padding: '5px 8px', marginBottom: 14 }}>
+            {t.dashboard.pvFlowNote}
+          </div>
           {flows.map(({ label, value, pct, color }) => (
-            <div key={label} style={{ marginBottom: 14 }}>
+            <div key={label} style={{ marginBottom: 12 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
                 <span style={{ fontSize: 12, color: '#64748b' }}>{label}</span>
-                <span style={{ fontSize: 12, fontWeight: 600, color: '#0f172a' }}>{value} kWh</span>
+                <span style={{ fontSize: 12, fontWeight: 600, color: '#0f172a' }}>{value.toLocaleString()} kWh</span>
               </div>
               <div className="progress-track">
                 <div className="progress-fill" style={{ width: `${pct}%`, background: color }} />
               </div>
             </div>
           ))}
-          <div style={{ marginTop: 18, padding: '12px', background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0' }}>
-            <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 6, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t.dashboard.bessStatus}</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ marginTop: 14, padding: '12px', background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0' }}>
+            <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 8, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t.dashboard.bessStatus}</div>
+            <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+              <div style={{ flex: 1, background: '#ecfdf5', borderRadius: 6, padding: '6px 8px', border: '1px solid #bbf7d0' }}>
+                <div style={{ fontSize: 10, color: '#94a3b8', marginBottom: 2 }}>{t.dashboard.bessState}</div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#10b981' }}>⚡ {t.dashboard.bessCharging}</div>
+              </div>
+              <div style={{ flex: 1, background: '#f5f3ff', borderRadius: 6, padding: '6px 8px', border: '1px solid #ddd6fe' }}>
+                <div style={{ fontSize: 10, color: '#94a3b8', marginBottom: 2 }}>{t.dashboard.bessPower}</div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#7c3aed' }}>245 kW</div>
+              </div>
+              <div style={{ flex: 1, background: '#fff7ed', borderRadius: 6, padding: '6px 8px', border: '1px solid #fed7aa' }}>
+                <div style={{ fontSize: 10, color: '#94a3b8', marginBottom: 2 }}>{t.dashboard.bessTemp}</div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#f59e0b' }}>28°C</div>
+              </div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
               <div style={{ flex: 1, height: 10, background: '#e2e8f0', borderRadius: 5, overflow: 'hidden' }}>
                 <div style={{ height: '100%', width: '64%', background: 'linear-gradient(90deg,#7c3aed,#a855f7)', borderRadius: 5 }} />
               </div>
               <span style={{ fontSize: 13, fontWeight: 700, color: '#7c3aed' }}>64%</span>
             </div>
-            <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>960 / 1,500 kWh {t.dashboard.bessCharged}</div>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <div style={{ fontSize: 11, color: '#94a3b8' }}>960 / 1,500 kWh {t.dashboard.bessCharged}</div>
+              <div style={{ fontSize: 11, color: '#64748b', fontWeight: 500 }}>{t.dashboard.bessETA}: ~2.2h</div>
+            </div>
           </div>
         </Card>
       </div>
