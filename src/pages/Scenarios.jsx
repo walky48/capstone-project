@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Search, Plus, ChevronUp, ChevronDown, Trash2, Copy, ExternalLink, Filter } from 'lucide-react'
 import { SCENARIOS } from '../data/scenarios'
-import { useLang } from '../contexts/LanguageContext'
+import { useLang } from '../hooks/useLang'
 
 function Badge({ tag, filters, filterKeys }) {
   const cls = { Recommended: 'badge-recommended', Active: 'badge-active', Draft: 'badge-draft' }[tag] || 'badge-draft'

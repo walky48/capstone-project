@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import { LayoutDashboard, Settings, ListChecks, GitCompare, TrendingUp, FileText, LogOut, Menu, ChevronRight, SlidersHorizontal, X, Bell, Moon, Info, User, Mail, Lock, Eye, EyeOff, Check } from 'lucide-react'
-import { useLang } from '../contexts/LanguageContext'
+import { useLang } from '../hooks/useLang'
 
 const navRoutes = [
   { key: 'dashboard', icon: LayoutDashboard, to: '/dashboard' },

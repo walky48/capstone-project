@@ -3,17 +3,15 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
 import { AlertCircle, CheckCircle } from 'lucide-react'
 import Card from '../components/ui/Card'
 import ChartTooltip from '../components/ui/Tooltip'
-import { useLang } from '../contexts/LanguageContext'
+import { useLang } from '../hooks/useLang'
 
 function genForecastData(days) {
   return Array.from({ length: days }, (_, i) => {
     const base = 3800 + Math.sin((i / 7) * Math.PI) * 400
     const actual = i < 20 ? Math.round(base + (Math.random() - 0.5) * 600) : null
     const forecast = Math.round(base + (Math.random() - 0.5) * 200)
-    const upper = forecast + Math.round(200 + i * 3)
-    const lower = forecast - Math.round(200 + i * 3)
     const d = new Date(2025, 4, 1 + i)
-    return { date: `${d.getDate()}/${d.getMonth() + 1}`, actual, forecast, upper, lower }
+    return { date: `${d.getDate()}/${d.getMonth() + 1}`, actual, forecast }
   })
 }
 
@@ -25,11 +23,11 @@ const pvForecastData = Array.from({ length: 30 }, (_, i) => {
   return { date: `${d.getDate()}/${d.getMonth() + 1}`, actual, forecast }
 })
 
-const modelMetricsMeta = [
-  { label: 'RMSE', value: '142 kWh', descKey: 0, status: 'good', icon: CheckCircle },
-  { label: 'MAE', value: '108 kWh', descKey: 1, status: 'good', icon: CheckCircle },
-  { label: 'MAPE', value: '3.1%', descKey: 2, status: 'good', icon: CheckCircle },
-  { label: 'R²', value: '0.94', descKey: 3, status: 'warning', icon: AlertCircle },
+const MODEL_METRICS = [
+  { label: 'RMSE', value: '142 kWh', good: true },
+  { label: 'MAE', value: '108 kWh', good: true },
+  { label: 'MAPE', value: '3.1%', good: true },
+  { label: 'R²', value: '0.94', good: false },
 ]
 
 export default function Forecast() {
@@ -60,16 +58,16 @@ export default function Forecast() {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 20 }}>
-        {modelMetricsMeta.map(({ label, value, descKey, status, icon: Icon }) => (
+        {MODEL_METRICS.map(({ label, value, good }, i) => (
           <Card key={label} style={{ padding: '16px 18px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
               <div>
                 <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: 4 }}>{label}</div>
                 <div style={{ fontSize: 22, fontWeight: 700, color: '#0f172a', letterSpacing: '-0.02em' }}>{value}</div>
               </div>
-              <Icon size={18} color={status === 'good' ? '#10b981' : '#f59e0b'} />
+              {good ? <CheckCircle size={18} color="#10b981" /> : <AlertCircle size={18} color="#f59e0b" />}
             </div>
-            <div style={{ fontSize: 11, color: '#64748b' }}>{t.forecast.metricDescs[descKey]}</div>
+            <div style={{ fontSize: 11, color: '#64748b' }}>{t.forecast.metricDescs[i]}</div>
           </Card>
         ))}
       </div>

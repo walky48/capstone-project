@@ -1,20 +1,11 @@
 import { RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Legend } from 'recharts'
 import { SCENARIOS } from '../data/scenarios'
 import Card from '../components/ui/Card'
-import { useLang } from '../contexts/LanguageContext'
+import { useLang } from '../hooks/useLang'
 
 const compareScenarios = [2, 1, 3].map(id => SCENARIOS.find(s => s.id === id))
 
-const radarValues = [
-  { a: 74, b: 48, c: 94 },
-  { a: 70, b: 90, c: 40 },
-  { a: 72, b: 28, c: 100 },
-  { a: 75, b: 50, c: 95 },
-  { a: 80, b: 85, c: 55 },
-  { a: 76, b: 52, c: 92 },
-]
-
-const metricsBase = [
+const METRIC_CONFIG = [
   { key: 'selfSuff', max: 100, unit: '%', color: '#10b981', goodHigh: true },
   { key: 'co2', max: 2500, unit: 'kg', color: '#0891b2', goodHigh: true },
   { key: 'gridImport', max: 2500, unit: 'kWh', color: '#dc2626', goodHigh: false },
@@ -22,11 +13,24 @@ const metricsBase = [
   { key: 'payback', max: 20, unit: 'yrs', color: '#f59e0b', goodHigh: false },
 ]
 
+const radarScores = [
+  [74, 48, 94],
+  [70, 90, 40],
+  [72, 28, 100],
+  [75, 50, 95],
+  [80, 85, 55],
+  [76, 52, 92],
+]
+
 export default function Compare() {
   const { t } = useLang()
 
-  const radarData = t.compare.radarAxes.map((axis, i) => ({ axis, ...radarValues[i] }))
-  const metrics = metricsBase.map((m, i) => ({ ...m, label: t.compare.metrics[i] }))
+  const radarData = t.compare.radarAxes.map((axis, i) => {
+    const [a, b, c] = radarScores[i]
+    return { axis, a, b, c }
+  })
+
+  const metrics = METRIC_CONFIG.map((m, i) => ({ ...m, label: t.compare.metrics[i] }))
 
   return (
     <div className="page-wrap">

@@ -1,7 +1,7 @@
-import { createContext, useContext, useState } from 'react'
+import { createContext, useState } from 'react'
 import { translations } from '../i18n'
 
-const LanguageContext = createContext()
+export const LanguageContext = createContext()
 
 export function LanguageProvider({ children }) {
   const [lang, setLang] = useState(() => localStorage.getItem('language') || 'en')
@@ -11,5 +11,3 @@ export function LanguageProvider({ children }) {
     </LanguageContext.Provider>
   )
 }
-
-export const useLang = () => useContext(LanguageContext)

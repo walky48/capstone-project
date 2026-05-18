@@ -1,44 +1,218 @@
 import { useState } from 'react'
+import jsPDF from 'jspdf'
+import autoTable from 'jspdf-autotable'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, BarChart, Bar } from 'recharts'
-import { Sun, Battery, Zap, TrendingDown, RefreshCw, Download } from 'lucide-react'
+import { Sun, Battery, Zap, TrendingDown, RefreshCw, Download, X, FolderOpen } from 'lucide-react'
 import Card from '../components/ui/Card'
 import ChartTooltip from '../components/ui/Tooltip'
-import { hourly, monthly } from '../data/dashboard'
-import { useLang } from '../contexts/LanguageContext'
+import { hourly, weekly, monthly, yearly } from '../data/dashboard'
+import { useLang } from '../hooks/useLang'
 
-const kpisBase = [
-  { key: 'pvGeneration', value: '4,280', unit: 'kWh/day', sub: '+12% this month', icon: Sun, color: '#f59e0b', bg: '#fffbeb', border: '#fde68a' },
-  { key: 'energyDemand', value: '5,840', unit: 'kWh/day', sub: '-3% this month', icon: Zap, color: '#0891b2', bg: '#ecfeff', border: '#a5f3fc' },
-  { key: 'selfSufficiency', value: '73.2', unit: '%', sub: 'Target: 80%', icon: Battery, color: '#7c3aed', bg: '#f5f3ff', border: '#ddd6fe' },
-  { key: 'gridImport', value: '1,560', unit: 'kWh/day', sub: 'vs. grid-only baseline', icon: TrendingDown, color: '#dc2626', bg: '#fef2f2', border: '#fecaca' },
+const KPI_DATA = [
+  { key: 'pvGeneration', value: '2,720', unit: 'kWh/day', sub: '+1.8% this month', icon: Sun, color: '#f59e0b', bg: '#fffbeb', border: '#fde68a' },
+  { key: 'energyDemand', value: '10,411', unit: 'kWh/day', sub: '-0.8% this month', icon: Zap, color: '#0891b2', bg: '#ecfeff', border: '#a5f3fc' },
+  { key: 'selfSufficiency', value: '26.1', unit: '%', sub: 'Target: 35%', icon: Battery, color: '#7c3aed', bg: '#f5f3ff', border: '#ddd6fe' },
+  { key: 'gridImport', value: '7,691', unit: 'kWh/day', sub: '-26% vs. no PV', icon: TrendingDown, color: '#dc2626', bg: '#fef2f2', border: '#fecaca' },
 ]
 
-const flowsBase = [
-  { key: 'pvToLoad', value: 3120, pct: 73, color: '#f59e0b' },
-  { key: 'pvToBess', value: 860, pct: 20, color: '#7c3aed' },
-  { key: 'bessToLoad', value: 420, pct: 10, color: '#7c3aed' },
-  { key: 'gridToLoad', value: 1560, pct: 27, color: '#dc2626' },
-  { key: 'pvToGrid', value: 300, pct: 7, color: '#10b981' },
+const FLOW_DATA = [
+  { key: 'pvToLoad', value: 2400, pct: 25, color: '#f59e0b' },
+  { key: 'pvToBess', value: 320, pct: 3, color: '#7c3aed' },
+  { key: 'bessToLoad', value: 288, pct: 3, color: '#7c3aed' },
+  { key: 'gridToLoad', value: 7691, pct: 74, color: '#dc2626' },
 ]
 
-const quickStatsBase = [
-  { key: 'specificYield', value: '1,420 kWh/kWp', color: '#f59e0b' },
-  { key: 'lcoe', value: '₺0.14/kWh', color: '#7c3aed' },
-  { key: 'co2Avoided', value: '1,240 kg/day', color: '#10b981' },
-  { key: 'paybackPeriod', value: '11.8 yrs', color: '#0891b2' },
-  { key: 'panelModel', value: 'JKM570N · 22.1%', color: '#64748b' },
+const STATS_DATA = [
+  { key: 'specificYield', value: '1,378 kWh/kWp', color: '#f59e0b' },
+  { key: 'lcoe', value: '₺0.77/kWh', color: '#7c3aed' },
+  { key: 'co2Avoided', value: '1,229 kg/day', color: '#10b981' },
+  { key: 'paybackPeriod', value: '5.0 yrs', color: '#0891b2' },
+  { key: 'panelModel', value: 'JKM570N · 22.07%', color: '#64748b' },
   { key: 'gridCO2', value: '452 g CO₂/kWh', color: '#dc2626' },
 ]
+
+const BLUE = [37, 99, 235]
+const GRAY = [100, 116, 139]
+
+const fmtTick = (v) => {
+  if (v >= 1e9) return Math.round(v / 1e9) + 'B'
+  if (v >= 1e6) return Math.round(v / 1e6) + 'M'
+  if (v >= 1e5) return Math.round(v / 1e3) + 'K'
+  return v
+}
+
+const pdfSafe = str => String(str)
+  .replace(/→/g, '->')
+  .replace(/·/g, '-')
+  .replace(/₺/g, 'TL')
+  .replace(/₂/g, '2')
 
 export default function Dashboard() {
   const { t } = useLang()
   const [range, setRange] = useState(0)
-  const chartData = range >= 2 ? monthly : hourly
-  const xKey = range >= 2 ? 'month' : 'hour'
+  const [refreshing, setRefreshing] = useState(false)
+  const [updatedAt] = useState('14:32')
+  const [exportOpen, setExportOpen] = useState(false)
+  const [exportFormat, setExportFormat] = useState('csv')
+  const [exportScope, setExportScope] = useState('current')
+  const [saveLocation, setSaveLocation] = useState('default')
 
-  const kpis = kpisBase.map(k => ({ ...k, label: t.dashboard.kpis[k.key] }))
-  const flows = flowsBase.map((f, i) => ({ ...f, label: t.dashboard.flows[i] }))
-  const quickStats = quickStatsBase.map(s => ({ ...s, label: t.dashboard.stats[s.key] }))
+  const canPickFile = typeof window !== 'undefined' && 'showSaveFilePicker' in window
+
+  const chartData = [hourly, weekly, monthly, yearly][range]
+  const xKey = ['hour', 'day', 'month', 'year'][range]
+
+  const kpis = KPI_DATA.map(k => ({ ...k, label: t.dashboard.kpis[k.key] }))
+  const flows = FLOW_DATA.map((f, i) => ({ ...f, label: t.dashboard.flows[i] }))
+  const quickStats = STATS_DATA.map(s => ({ ...s, label: t.dashboard.stats[s.key] }))
+
+  const handleRefresh = () => {
+    setRefreshing(true)
+    setTimeout(() => window.location.reload(), 800)
+  }
+
+  const handleExport = () => setExportOpen(true)
+
+  const buildPdf = (rangeLabel) => {
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+
+    doc.setFillColor(...BLUE)
+    doc.rect(0, 0, 210, 16, 'F')
+    doc.setTextColor(255, 255, 255)
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'bold')
+    doc.text('BAU Kemerburgaz Campus  ·  Dashboard Export', 14, 11)
+    doc.setFontSize(8)
+    doc.setFont('helvetica', 'normal')
+    doc.text(new Date().toLocaleString(), 196, 11, { align: 'right' })
+
+    let y = 24
+
+    const section = (title) => {
+      doc.setFontSize(7.5)
+      doc.setFont('helvetica', 'bold')
+      doc.setTextColor(...GRAY)
+      doc.text(title.toUpperCase(), 14, y)
+      y += 3
+    }
+
+    const tblOpts = (startY, head, body) => ({
+      startY, head, body,
+      styles: { fontSize: 8, cellPadding: 2.5 },
+      headStyles: { fillColor: BLUE, fontSize: 7.5, fontStyle: 'bold', textColor: 255 },
+      alternateRowStyles: { fillColor: [248, 250, 252] },
+      margin: { left: 14, right: 14 },
+      theme: 'grid',
+    })
+
+    section('KPI Summary')
+    autoTable(doc, tblOpts(y, [['Metric', 'Value', 'Unit']],
+      KPI_DATA.map(k => [pdfSafe(t.dashboard.kpis[k.key]), k.value, k.unit])
+    ))
+    y = doc.lastAutoTable.finalY + 7
+
+    section('Energy Flow')
+    autoTable(doc, tblOpts(y, [['Flow', 'Energy (kWh)', 'Share (%)']],
+      FLOW_DATA.map((f, i) => [pdfSafe(t.dashboard.flows[i]), f.value.toLocaleString(), f.pct + '%'])
+    ))
+    y = doc.lastAutoTable.finalY + 7
+
+    section('Quick Statistics')
+    autoTable(doc, tblOpts(y, [['Metric', 'Value']],
+      STATS_DATA.map(s => [pdfSafe(t.dashboard.stats[s.key]), pdfSafe(s.value)])
+    ))
+    y = doc.lastAutoTable.finalY + 7
+
+    if (exportScope !== 'kpi') {
+      const addDataTable = (data, key, title) => {
+        if (y > 240) { doc.addPage(); y = 20 }
+        section(title)
+        autoTable(doc, tblOpts(y,
+          [[key.charAt(0).toUpperCase() + key.slice(1), 'PV (kWh)', 'Load (kWh)', 'Grid (kWh)']],
+          data.map(r => [r[key], r.pv, r.load, r.grid])
+        ))
+        y = doc.lastAutoTable.finalY + 7
+      }
+
+      if (exportScope === 'current') {
+        addDataTable(chartData, xKey, `Energy Balance — ${rangeLabel}`)
+      } else {
+        addDataTable(hourly, 'hour', 'Energy Balance — Hourly')
+        addDataTable(weekly, 'day', 'Energy Balance — Weekly')
+        addDataTable(monthly, 'month', 'Energy Balance — Monthly')
+        addDataTable(yearly, 'year', 'Energy Balance — Yearly')
+      }
+    }
+
+    const pages = doc.internal.getNumberOfPages()
+    for (let i = 1; i <= pages; i++) {
+      doc.setPage(i)
+      doc.setFontSize(7)
+      doc.setTextColor(...GRAY)
+      doc.text(`BAU Kemerburgaz · CEMS Dashboard  ·  Page ${i} of ${pages}`, 14, 291)
+    }
+
+    return doc
+  }
+
+  const doExport = async () => {
+    const rangeLabel = t.dashboard.ranges[range]
+    const scopeSlug = exportScope === 'current' ? rangeLabel.toLowerCase() : exportScope
+    const dateSuffix = new Date().toISOString().split('T')[0]
+    const filename = `dashboard-${scopeSlug}-${dateSuffix}.${exportFormat}`
+
+    let blob
+    if (exportFormat === 'pdf') {
+      blob = buildPdf(rangeLabel).output('blob')
+    } else if (exportFormat === 'json') {
+      const out = { exported: new Date().toISOString(), campus: 'BAU Kemerburgaz' }
+      out.kpis = KPI_DATA.map(k => ({ name: t.dashboard.kpis[k.key], value: k.value, unit: k.unit }))
+      if (exportScope === 'current') { out.range = rangeLabel; out.chartData = chartData }
+      else if (exportScope === 'all') { out.hourly = hourly; out.weekly = weekly; out.monthly = monthly; out.yearly = yearly }
+      blob = new Blob([JSON.stringify(out, null, 2)], { type: 'application/json' })
+    } else {
+      const block = (data, key) => {
+        const hdr = [key, 'PV', 'Load', 'Grid'].join(',')
+        return [hdr, ...data.map(r => [r[key], r.pv, r.load, r.grid].join(','))].join('\n')
+      }
+      const kpiLines = KPI_DATA.map(k => `${t.dashboard.kpis[k.key]},${k.value},${k.unit}`).join('\n')
+      let body = `BAU Kemerburgaz Campus - Dashboard Export\nExported: ${new Date().toLocaleString()}\n\n== KPI Summary ==\n${kpiLines}\n\n`
+      if (exportScope === 'current') body += `== Energy Balance (${rangeLabel}) ==\n` + block(chartData, xKey)
+      else if (exportScope === 'all') {
+        body += '== Hourly ==\n' + block(hourly, 'hour') + '\n\n'
+        body += '== Weekly ==\n' + block(weekly, 'day') + '\n\n'
+        body += '== Monthly ==\n' + block(monthly, 'month') + '\n\n'
+        body += '== Yearly ==\n' + block(yearly, 'year')
+      }
+      blob = new Blob([body], { type: 'text/csv' })
+    }
+
+    if (saveLocation === 'choose' && canPickFile) {
+      const types = {
+        csv: { description: 'CSV File', accept: { 'text/csv': ['.csv'] } },
+        json: { description: 'JSON File', accept: { 'application/json': ['.json'] } },
+        pdf: { description: 'PDF File', accept: { 'application/pdf': ['.pdf'] } },
+      }
+      try {
+        const handle = await window.showSaveFilePicker({ suggestedName: filename, types: [types[exportFormat]] })
+        const writable = await handle.createWritable()
+        await writable.write(blob)
+        await writable.close()
+      } catch (e) {
+        if (e.name !== 'AbortError') console.error(e)
+      }
+    } else {
+      const a = document.createElement('a')
+      a.href = URL.createObjectURL(blob)
+      a.download = filename
+      a.click()
+      URL.revokeObjectURL(a.href)
+    }
+
+    setExportOpen(false)
+  }
+
+  const fmtDescs = { csv: t.dashboard.exportModal.csvDesc, json: t.dashboard.exportModal.jsonDesc, pdf: t.dashboard.exportModal.pdfDesc }
 
   return (
     <div className="page-wrap">
@@ -46,11 +220,15 @@ export default function Dashboard() {
         <div>
           <div className="section-label">{t.dashboard.sectionLabel}</div>
           <h1 className="page-title">{t.dashboard.title}</h1>
-          <p style={{ color: '#64748b', fontSize: 13 }}>{t.dashboard.subtitle}</p>
+          <p style={{ color: '#64748b', fontSize: 13 }}>{t.dashboard.subtitleUpdated} {updatedAt} · {t.dashboard.subtitleScenario}</p>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button className="btn btn-outline"><RefreshCw size={14} /> {t.dashboard.refresh}</button>
-          <button className="btn btn-outline"><Download size={14} /> {t.dashboard.export}</button>
+          <button className="btn btn-outline" onClick={handleRefresh} disabled={refreshing}>
+            <RefreshCw size={14} className={refreshing ? 'spin' : ''} /> {t.dashboard.refresh}
+          </button>
+          <button className="btn btn-outline" onClick={handleExport}>
+            <Download size={14} /> {t.dashboard.export}
+          </button>
           <button className="btn btn-primary">{t.dashboard.newScenario}</button>
         </div>
       </div>
@@ -105,7 +283,7 @@ export default function Dashboard() {
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
               <XAxis dataKey={xKey} tick={{ fontSize: 10, fill: '#94a3b8' }} tickLine={false} axisLine={false} interval={range === 0 ? 3 : 0} />
-              <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} tickLine={false} axisLine={false} />
+              <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} tickLine={false} axisLine={false} tickFormatter={fmtTick} />
               <Tooltip content={<ChartTooltip />} />
               <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11, paddingTop: 12 }} formatter={v => t.dashboard.chartLabels[v] || v} />
               <Area type="monotone" dataKey="pv" name="pv" stroke="#f59e0b" strokeWidth={2} fill="url(#gPV)" />
@@ -170,7 +348,7 @@ export default function Dashboard() {
             <BarChart data={monthly} barSize={10} margin={{ top: 0, right: 4, left: -20, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
               <XAxis dataKey="month" tick={{ fontSize: 10, fill: '#94a3b8' }} tickLine={false} axisLine={false} />
-              <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} tickLine={false} axisLine={false} />
+              <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} tickLine={false} axisLine={false} tickFormatter={fmtTick} />
               <Tooltip content={<ChartTooltip />} />
               <Bar dataKey="pv" name={t.dashboard.chartLabels.pv} fill="#f59e0b" radius={[3, 3, 0, 0]} />
               <Bar dataKey="load" name={t.dashboard.chartLabels.load} fill="#0891b2" radius={[3, 3, 0, 0]} />
@@ -188,6 +366,77 @@ export default function Dashboard() {
           ))}
         </Card>
       </div>
+
+      {exportOpen && (
+        <div className="modal-overlay" onClick={() => setExportOpen(false)}>
+          <div className="modal" style={{ width: 440 }} onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <span style={{ fontSize: 15, fontWeight: 600, color: '#0f172a' }}>{t.dashboard.exportModal.title}</span>
+              <button className="modal-close" onClick={() => setExportOpen(false)}><X size={14} /></button>
+            </div>
+            <div className="modal-body">
+
+              <div className="modal-section">
+                <div style={{ fontSize: 11, fontWeight: 600, color: '#94a3b8', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{t.dashboard.exportModal.format}</div>
+                <div className="tab-group" style={{ display: 'inline-flex' }}>
+                  {['csv', 'json', 'pdf'].map(f => (
+                    <button key={f} className={`tab-btn${exportFormat === f ? ' active' : ''}`} onClick={() => setExportFormat(f)} style={{ padding: '5px 16px', fontSize: 12 }}>
+                      {f.toUpperCase()}
+                    </button>
+                  ))}
+                </div>
+                <div style={{ marginTop: 8, fontSize: 11, color: '#94a3b8' }}>{fmtDescs[exportFormat]}</div>
+              </div>
+
+              <div className="modal-section">
+                <div style={{ fontSize: 11, fontWeight: 600, color: '#94a3b8', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{t.dashboard.exportModal.scope}</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {t.dashboard.exportModal.scopes.map((label, i) => {
+                    const val = ['current', 'all', 'kpi'][i]
+                    return (
+                      <label key={val} className={`radio-opt${exportScope === val ? ' sel' : ''}`}>
+                        <input type="radio" name="exportScope" value={val} checked={exportScope === val} onChange={() => setExportScope(val)} style={{ accentColor: '#2563eb', cursor: 'pointer', marginTop: 1 }} />
+                        <span style={{ fontSize: 13, color: '#0f172a', fontWeight: exportScope === val ? 500 : 400 }}>{label}</span>
+                      </label>
+                    )
+                  })}
+                </div>
+              </div>
+
+              <div className="modal-section">
+                <div style={{ fontSize: 11, fontWeight: 600, color: '#94a3b8', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{t.dashboard.exportModal.location}</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <label className={`radio-opt${saveLocation === 'default' ? ' sel' : ''}`}>
+                    <input type="radio" name="saveLocation" value="default" checked={saveLocation === 'default'} onChange={() => setSaveLocation('default')} style={{ accentColor: '#2563eb', cursor: 'pointer', marginTop: 3 }} />
+                    <div>
+                      <div style={{ fontSize: 13, color: '#0f172a', fontWeight: saveLocation === 'default' ? 500 : 400 }}>{t.dashboard.exportModal.locationDefault}</div>
+                      <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>{t.dashboard.exportModal.locationDefaultDesc}</div>
+                    </div>
+                  </label>
+                  <label className={`radio-opt${saveLocation === 'choose' ? ' sel' : ''}`} style={{ opacity: canPickFile ? 1 : 0.45, cursor: canPickFile ? 'pointer' : 'not-allowed' }}>
+                    <input type="radio" name="saveLocation" value="choose" checked={saveLocation === 'choose'} onChange={() => canPickFile && setSaveLocation('choose')} disabled={!canPickFile} style={{ accentColor: '#2563eb', cursor: canPickFile ? 'pointer' : 'not-allowed', marginTop: 3 }} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ fontSize: 13, color: '#0f172a', fontWeight: saveLocation === 'choose' ? 500 : 400 }}>{t.dashboard.exportModal.locationChoose}</span>
+                        <FolderOpen size={13} color="#64748b" />
+                      </div>
+                      <div style={{ fontSize: 11, color: canPickFile ? '#94a3b8' : '#dc2626', marginTop: 2 }}>
+                        {canPickFile ? t.dashboard.exportModal.locationChooseDesc : t.dashboard.exportModal.locationNotSupported}
+                      </div>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              <div className="modal-section-alt" style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', padding: '14px 24px' }}>
+                <button className="btn btn-outline" onClick={() => setExportOpen(false)}>{t.dashboard.exportModal.cancel}</button>
+                <button className="btn btn-primary" onClick={doExport}><Download size={13} /> {t.dashboard.exportModal.export}</button>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
