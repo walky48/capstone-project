@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, BarChart, Bar } from 'recharts'
@@ -59,12 +59,56 @@ export default function Dashboard() {
 
   const canPickFile = typeof window !== 'undefined' && 'showSaveFilePicker' in window
 
-  const chartData = [hourly, weekly, monthly, yearly][range]
+  const fmtNum = n => Math.round(n).toLocaleString('en-US')
+
+  const sim = useMemo(() => {
+    try { return JSON.parse(localStorage.getItem('simulation_result')) } catch { return null }
+  }, [])
+
+  const scaleRow = (row, s) => {
+    const pv = Math.round(row.pv * s.pvScale)
+    const load = Math.round(row.load * s.loadScale)
+    return { ...row, pv, load, grid: Math.max(0, load - pv) }
+  }
+
+  const activeKPIs = sim ? [
+    { key: 'pvGeneration', value: fmtNum(sim.dailyPV), unit: 'kWh/day', sub: `${fmtNum(sim.totalKWp)} kWp installed`, icon: Sun, color: '#f59e0b', bg: '#fffbeb', border: '#fde68a' },
+    { key: 'energyDemand', value: fmtNum(sim.dailyLoad), unit: 'kWh/day', sub: `${fmtNum(sim.annualLoad / 1000)} MWh/yr`, icon: Zap, color: '#0891b2', bg: '#ecfeff', border: '#a5f3fc' },
+    { key: 'selfSufficiency', value: String(sim.selfSufficiency), unit: '%', sub: 'Target: 35%', icon: Battery, color: '#7c3aed', bg: '#f5f3ff', border: '#ddd6fe' },
+    { key: 'gridImport', value: fmtNum(sim.gridToLoad), unit: 'kWh/day', sub: `${(100 - sim.selfSufficiency).toFixed(0)}% grid dependency`, icon: TrendingDown, color: '#dc2626', bg: '#fef2f2', border: '#fecaca' },
+  ] : KPI_DATA
+
+  const activeFlows = sim ? [
+    { key: 'pvToLoad', value: sim.pvToLoad, pct: Math.round(sim.pvToLoad / sim.dailyLoad * 100), color: '#f59e0b' },
+    { key: 'pvToBess', value: sim.pvToBess, pct: Math.round(sim.pvToBess / sim.dailyLoad * 100), color: '#7c3aed' },
+    { key: 'bessToLoad', value: sim.bessToLoad, pct: Math.round(sim.bessToLoad / sim.dailyLoad * 100), color: '#7c3aed' },
+    { key: 'gridToLoad', value: sim.gridToLoad, pct: Math.round(sim.gridToLoad / sim.dailyLoad * 100), color: '#dc2626' },
+  ] : FLOW_DATA
+
+  const activeStats = sim ? [
+    { key: 'specificYield', value: `${fmtNum(sim.specificYield)} kWh/kWp`, color: '#f59e0b' },
+    { key: 'lcoe', value: `₺${sim.lcoe}/kWh`, color: '#7c3aed' },
+    { key: 'co2Avoided', value: `${fmtNum(sim.co2AvoidedDaily)} kg/day`, color: '#10b981' },
+    { key: 'paybackPeriod', value: `${sim.paybackYears} yrs`, color: '#0891b2' },
+    { key: 'panelModel', value: sim.pvModel ? sim.pvModel.replace('-72HL4-BDV', '') + ' · ' + sim.pvEff : 'JKM570N · 22.07%', color: '#64748b' },
+    { key: 'gridCO2', value: '452 g CO₂/kWh', color: '#dc2626' },
+  ] : STATS_DATA
+
+  const activeHourly = sim ? hourly.map(r => scaleRow(r, sim)) : hourly
+  const activeWeekly = sim ? weekly.map(r => scaleRow(r, sim)) : weekly
+  const activeMonthly = sim ? monthly.map(r => scaleRow(r, sim)) : monthly
+  const activeYearly = sim ? yearly.map(r => scaleRow(r, sim)) : yearly
+
+  const bessChargePct = sim ? sim.bessChargePct : 64
+  const bessCapacityDisplay = sim ? sim.bessCapacity : 1500
+  const bessChargedKwh = Math.round(bessCapacityDisplay * 0.9 * bessChargePct / 100)
+
+  const chartData = [activeHourly, activeWeekly, activeMonthly, activeYearly][range]
   const xKey = ['hour', 'day', 'month', 'year'][range]
 
-  const kpis = KPI_DATA.map(k => ({ ...k, label: t.dashboard.kpis[k.key] }))
-  const flows = FLOW_DATA.map((f, i) => ({ ...f, label: t.dashboard.flows[i] }))
-  const quickStats = STATS_DATA.map(s => ({ ...s, label: t.dashboard.stats[s.key] }))
+  const kpis = activeKPIs.map(k => ({ ...k, label: t.dashboard.kpis[k.key] }))
+  const flows = activeFlows.map((f, i) => ({ ...f, label: t.dashboard.flows[i] }))
+  const quickStats = activeStats.map(s => ({ ...s, label: t.dashboard.stats[s.key] }))
 
   const handleRefresh = () => {
     setRefreshing(true)
@@ -107,19 +151,19 @@ export default function Dashboard() {
 
     section('KPI Summary')
     autoTable(doc, tblOpts(y, [['Metric', 'Value', 'Unit']],
-      KPI_DATA.map(k => [pdfSafe(t.dashboard.kpis[k.key]), k.value, k.unit])
+      activeKPIs.map(k => [pdfSafe(t.dashboard.kpis[k.key]), k.value, k.unit])
     ))
     y = doc.lastAutoTable.finalY + 7
 
     section('Energy Flow')
     autoTable(doc, tblOpts(y, [['Flow', 'Energy (kWh)', 'Share (%)']],
-      FLOW_DATA.map((f, i) => [pdfSafe(t.dashboard.flows[i]), f.value.toLocaleString(), f.pct + '%'])
+      activeFlows.map((f, i) => [pdfSafe(t.dashboard.flows[i]), f.value.toLocaleString(), f.pct + '%'])
     ))
     y = doc.lastAutoTable.finalY + 7
 
     section('Quick Statistics')
     autoTable(doc, tblOpts(y, [['Metric', 'Value']],
-      STATS_DATA.map(s => [pdfSafe(t.dashboard.stats[s.key]), pdfSafe(s.value)])
+      activeStats.map(s => [pdfSafe(t.dashboard.stats[s.key]), pdfSafe(s.value)])
     ))
     y = doc.lastAutoTable.finalY + 7
 
@@ -137,10 +181,10 @@ export default function Dashboard() {
       if (exportScope === 'current') {
         addDataTable(chartData, xKey, `Energy Balance — ${rangeLabel}`)
       } else {
-        addDataTable(hourly, 'hour', 'Energy Balance — Hourly')
-        addDataTable(weekly, 'day', 'Energy Balance — Weekly')
-        addDataTable(monthly, 'month', 'Energy Balance — Monthly')
-        addDataTable(yearly, 'year', 'Energy Balance — Yearly')
+        addDataTable(activeHourly, 'hour', 'Energy Balance — Hourly')
+        addDataTable(activeWeekly, 'day', 'Energy Balance — Weekly')
+        addDataTable(activeMonthly, 'month', 'Energy Balance — Monthly')
+        addDataTable(activeYearly, 'year', 'Energy Balance — Yearly')
       }
     }
 
@@ -219,8 +263,16 @@ export default function Dashboard() {
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 28 }}>
         <div>
           <div className="section-label">{t.dashboard.sectionLabel}</div>
-          <h1 className="page-title">{t.dashboard.title}</h1>
-          <p style={{ color: '#64748b', fontSize: 13 }}>{t.dashboard.subtitleUpdated} {updatedAt} · {t.dashboard.subtitleScenario}</p>
+          <h1 className="page-title">
+            {t.dashboard.title}
+            {sim && <span style={{ marginLeft: 10, fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', color: '#10b981', background: '#ecfdf5', border: '1px solid #bbf7d0', borderRadius: 4, padding: '2px 7px', verticalAlign: 'middle' }}>SIMULATION</span>}
+          </h1>
+          <p style={{ color: '#64748b', fontSize: 13 }}>
+            {sim
+              ? <><span style={{ color: '#10b981', fontWeight: 600 }}>⚡ {sim.campusName}</span> · {sim.totalKWp} kWp · {new Date(sim.runAt).toLocaleTimeString()}</>
+              : <>{t.dashboard.subtitleUpdated} {updatedAt} · {t.dashboard.subtitleScenario}</>
+            }
+          </p>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <button className="btn btn-outline" onClick={handleRefresh} disabled={refreshing}>
@@ -229,7 +281,6 @@ export default function Dashboard() {
           <button className="btn btn-outline" onClick={handleExport}>
             <Download size={14} /> {t.dashboard.export}
           </button>
-          <button className="btn btn-primary">{t.dashboard.newScenario}</button>
         </div>
       </div>
 
@@ -328,12 +379,12 @@ export default function Dashboard() {
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
               <div style={{ flex: 1, height: 10, background: '#e2e8f0', borderRadius: 5, overflow: 'hidden' }}>
-                <div style={{ height: '100%', width: '64%', background: 'linear-gradient(90deg,#7c3aed,#a855f7)', borderRadius: 5 }} />
+                <div style={{ height: '100%', width: `${bessChargePct}%`, background: 'linear-gradient(90deg,#7c3aed,#a855f7)', borderRadius: 5 }} />
               </div>
-              <span style={{ fontSize: 13, fontWeight: 700, color: '#7c3aed' }}>64%</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: '#7c3aed' }}>{bessChargePct}%</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <div style={{ fontSize: 11, color: '#94a3b8' }}>960 / 1,500 kWh {t.dashboard.bessCharged}</div>
+              <div style={{ fontSize: 11, color: '#94a3b8' }}>{bessChargedKwh.toLocaleString()} / {bessCapacityDisplay.toLocaleString()} kWh {t.dashboard.bessCharged}</div>
               <div style={{ fontSize: 11, color: '#64748b', fontWeight: 500 }}>{t.dashboard.bessETA}: ~2.2h</div>
             </div>
           </div>

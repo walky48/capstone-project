@@ -93,6 +93,7 @@ function ProfileModal({ onClose, onProfileSave }) {
       if (!currentPass) { setPassError(t.profile.errors.enterCurrentPass); return }
       if (newPass.length < 6) { setPassError(t.profile.errors.minLength); return }
       if (newPass !== confirmPass) { setPassError(t.profile.errors.noMatch); return }
+      localStorage.setItem('dev_pass', newPass)
       setCurrentPass(''); setNewPass(''); setConfirmPass('')
     }
     setPassError('')
@@ -104,12 +105,7 @@ function ProfileModal({ onClose, onProfileSave }) {
   }
 
   const EyeBtn = ({ show, onToggle }) => (
-    <button
-      onClick={onToggle}
-      style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', display: 'flex', alignItems: 'center', padding: 0 }}
-      onMouseEnter={e => { e.currentTarget.style.color = '#64748b' }}
-      onMouseLeave={e => { e.currentTarget.style.color = '#94a3b8' }}
-    >
+    <button onClick={onToggle} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', display: 'flex', alignItems: 'center', padding: 0 }}>
       {show ? <EyeOff size={14} /> : <Eye size={14} />}
     </button>
   )
@@ -282,12 +278,7 @@ export default function Sidebar({ onLogout, open, onToggle }) {
         zIndex: 200, overflow: 'hidden', flexShrink: 0,
       }}>
         <div className="sidebar-topbar">
-          <button
-            onClick={onToggle}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 6, flexShrink: 0 }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = '#e2e8f0' }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = '#94a3b8' }}
-          >
+          <button onClick={onToggle} className="sb-icon-btn">
             <Menu size={18} />
           </button>
         </div>
@@ -297,19 +288,16 @@ export default function Sidebar({ onLogout, open, onToggle }) {
             <NavLink
               key={to}
               to={to}
+              className={({ isActive }) => `nav-link${isActive ? ' nav-active' : ''}`}
               style={({ isActive }) => ({
-                display: 'flex', alignItems: 'center', gap: open ? 10 : 0,
+                gap: open ? 10 : 0,
                 padding: open ? '9px 10px' : '10px 0',
                 justifyContent: open ? 'flex-start' : 'center',
-                borderRadius: 7, marginBottom: 2,
                 color: isActive ? '#60a5fa' : '#94a3b8',
-                background: isActive ? 'rgba(37,99,235,0.12)' : 'transparent',
+                background: isActive ? 'rgba(37,99,235,0.12)' : undefined,
                 borderLeft: open ? (isActive ? '2px solid #2563eb' : '2px solid transparent') : 'none',
-                fontSize: 13, fontWeight: isActive ? 500 : 400,
-                transition: 'all 0.15s', textDecoration: 'none', overflow: 'hidden',
+                fontWeight: isActive ? 500 : 400,
               })}
-              onMouseEnter={e => { if (!e.currentTarget.className.includes('active')) e.currentTarget.style.background = 'rgba(255,255,255,0.04)' }}
-              onMouseLeave={e => { if (!e.currentTarget.className.includes('active')) e.currentTarget.style.background = 'transparent' }}
             >
               <Icon size={16} style={{ flexShrink: 0 }} />
               {open && (
@@ -325,60 +313,34 @@ export default function Sidebar({ onLogout, open, onToggle }) {
         <div style={{ padding: open ? '12px 10px' : '10px 6px' }}>
           {open ? (
             <>
-              <button
-                onClick={() => setSettingsOpen(true)}
-                style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', borderRadius: 7, color: '#64748b', fontSize: 12, transition: 'all 0.15s', background: 'none', border: 'none', cursor: 'pointer', marginBottom: 8 }}
-                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = '#e2e8f0' }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#64748b' }}
-              >
+              <button onClick={() => setSettingsOpen(true)} className="sb-action-btn">
                 <SlidersHorizontal size={15} /> {t.nav.settings}
               </button>
-              <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', marginBottom: 8 }} />
-              <button
-                onClick={() => setProfileOpen(true)}
-                style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 7, background: 'none', border: 'none', cursor: 'pointer', marginBottom: 6, transition: 'background 0.15s' }}
-                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)' }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
-              >
+              <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', marginBottom: 8, marginTop: 2 }} />
+              <button onClick={() => setProfileOpen(true)} className="sb-profile-btn">
                 <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'linear-gradient(135deg,#2563eb,#7c3aed)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 12, fontWeight: 600, flexShrink: 0 }}>{initials}</div>
                 <div style={{ textAlign: 'left' }}>
                   <div style={{ color: '#e2e8f0', fontSize: 12, fontWeight: 500, whiteSpace: 'nowrap' }}>{profileName}</div>
                   <div style={{ color: '#475569', fontSize: 10 }}>{t.profile.role.split('·')[0].trim()}</div>
                 </div>
               </button>
-              <button
-                onClick={onLogout}
-                style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', borderRadius: 7, color: '#64748b', fontSize: 12, transition: 'all 0.15s', background: 'none', border: 'none', cursor: 'pointer' }}
-                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.1)'; e.currentTarget.style.color = '#f87171' }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#64748b' }}
-              >
+              <button onClick={onLogout} className="sb-logout-btn">
                 <LogOut size={15} /> {t.nav.signOut}
               </button>
             </>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-              <button
-                onClick={() => setSettingsOpen(true)}
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 6, borderRadius: 6, color: '#64748b', background: 'none', border: 'none', cursor: 'pointer', transition: 'color 0.15s' }}
-                onMouseEnter={e => { e.currentTarget.style.color = '#e2e8f0' }}
-                onMouseLeave={e => { e.currentTarget.style.color = '#64748b' }}
-              >
+              <button onClick={() => setSettingsOpen(true)} className="sb-icon-btn">
                 <SlidersHorizontal size={15} />
               </button>
               <button
                 onClick={() => setProfileOpen(true)}
-                style={{ width: 30, height: 30, borderRadius: '50%', background: 'linear-gradient(135deg,#2563eb,#7c3aed)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 11, fontWeight: 600, border: 'none', cursor: 'pointer', boxShadow: '0 0 0 0 transparent', transition: 'box-shadow 0.15s' }}
-                onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 0 0 3px rgba(37,99,235,0.35)' }}
-                onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 0 0 0 transparent' }}
+                className="sb-avatar-btn"
+                style={{ width: 30, height: 30, background: 'linear-gradient(135deg,#2563eb,#7c3aed)', color: '#fff', fontSize: 11, fontWeight: 600, border: 'none' }}
               >
                 {initials}
               </button>
-              <button
-                onClick={onLogout}
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 6, borderRadius: 6, color: '#64748b', background: 'none', border: 'none', cursor: 'pointer', transition: 'color 0.15s' }}
-                onMouseEnter={e => { e.currentTarget.style.color = '#f87171' }}
-                onMouseLeave={e => { e.currentTarget.style.color = '#64748b' }}
-              >
+              <button onClick={onLogout} className="sb-icon-btn" style={{ color: '#64748b' }}>
                 <LogOut size={15} />
               </button>
             </div>

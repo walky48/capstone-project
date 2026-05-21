@@ -9,13 +9,16 @@ export default function Login({ onLogin }) {
   const [error, setError] = useState(false)
   const [remember, setRemember] = useState(false)
 
+  const devUser = localStorage.getItem('dev_user') || 'admin'
+  const devPass = localStorage.getItem('dev_pass') || '1234'
+
   function handleSubmit(e) {
     e.preventDefault()
     setError(false)
     setLoading(true)
     setTimeout(() => {
       setLoading(false)
-      if (email === 'admin' && pass === '1234') {
+      if (email === devUser && pass === devPass) {
         onLogin()
       } else {
         setError(true)
@@ -31,12 +34,14 @@ export default function Login({ onLogin }) {
         flexDirection: 'column', padding: 40, position: 'relative'
       }}>
        
-        <div style={{ marginBottom: 'auto' }}>
-          <div style={{ color: '#fff', fontSize: 28, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.25 }}>Energy Management Tool</div>
-        </div>
-
-        
         <div style={{ width: '100%', maxWidth: 340, alignSelf: 'center', marginTop: 'auto', marginBottom: 'auto' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: -8, marginTop: -60 }}>
+            <img
+              src={`${import.meta.env.BASE_URL}helios-logo.png`}
+              alt="Helios"
+              style={{ width: 310, height: 310, objectFit: 'contain' }}
+            />
+          </div>
 
           
           <form onSubmit={handleSubmit}>
@@ -108,6 +113,13 @@ export default function Login({ onLogin }) {
           </form>
           <div style={{ textAlign: 'center', marginTop: 18 }}>
             <button style={{ background: 'none', border: 'none', color: '#475569', fontSize: 12, cursor: 'pointer', letterSpacing: '0.03em' }}>FORGOT PASSWORD</button>
+            <div style={{ marginTop: 14, padding: '10px 14px', borderRadius: 7, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+              <div style={{ fontSize: 10, color: '#334155', letterSpacing: '0.08em', marginBottom: 6 }}>DEV CREDENTIALS</div>
+              <div style={{ fontSize: 12, color: '#334155', lineHeight: 1.8 }}>
+                <span style={{ color: '#475569' }}>user</span> &nbsp;{devUser}<br />
+                <span style={{ color: '#475569' }}>pass</span> &nbsp;{devPass}
+              </div>
+            </div>
           </div>
         </div>
         <div style={{ marginTop: 'auto' }} />
@@ -115,7 +127,7 @@ export default function Login({ onLogin }) {
 
       <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
         <img
-          src="/campus.webp"
+          src={`${import.meta.env.BASE_URL}campus.webp`}
           alt="BAU Kemerburgaz Kampüsü"
           style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center' }}
         />
