@@ -1,0 +1,60 @@
+export const hourly = [
+  { hour: '00:00', pv: 0,   load: 333, grid: 309 },
+  { hour: '01:00', pv: 0,   load: 324, grid: 300 },
+  { hour: '02:00', pv: 0,   load: 317, grid: 293 },
+  { hour: '03:00', pv: 0,   load: 314, grid: 290 },
+  { hour: '04:00', pv: 0,   load: 315, grid: 291 },
+  { hour: '05:00', pv: 0,   load: 329, grid: 305 },
+  { hour: '06:00', pv: 0,   load: 351, grid: 327 },
+  { hour: '07:00', pv: 92,  load: 406, grid: 314 },
+  { hour: '08:00', pv: 178, load: 478, grid: 300 },
+  { hour: '09:00', pv: 251, load: 530, grid: 279 },
+  { hour: '10:00', pv: 308, load: 554, grid: 246 },
+  { hour: '11:00', pv: 343, load: 563, grid: 220 },
+  { hour: '12:00', pv: 356, load: 557, grid: 201 },
+  { hour: '13:00', pv: 343, load: 559, grid: 216 },
+  { hour: '14:00', pv: 308, load: 551, grid: 243 },
+  { hour: '15:00', pv: 251, load: 545, grid: 294 },
+  { hour: '16:00', pv: 178, load: 536, grid: 358 },
+  { hour: '17:00', pv: 92,  load: 503, grid: 411 },
+  { hour: '18:00', pv: 0,   load: 460, grid: 436 },
+  { hour: '19:00', pv: 0,   load: 428, grid: 404 },
+  { hour: '20:00', pv: 0,   load: 401, grid: 377 },
+  { hour: '21:00', pv: 0,   load: 374, grid: 350 },
+  { hour: '22:00', pv: 0,   load: 353, grid: 329 },
+  { hour: '23:00', pv: 0,   load: 336, grid: 312 },
+]
+
+export const weekly = [
+  { day: 'Mon', pv: 2820, load: 10650, grid: 7830 },
+  { day: 'Tue', pv: 2690, load: 10540, grid: 7850 },
+  { day: 'Wed', pv: 2930, load: 10720, grid: 7790 },
+  { day: 'Thu', pv: 2580, load: 10480, grid: 7900 },
+  { day: 'Fri', pv: 2750, load: 10320, grid: 7570 },
+  { day: 'Sat', pv: 2680, load: 7180,  grid: 4500 },
+  { day: 'Sun', pv: 2450, load: 6820,  grid: 4370 },
+]
+
+export const monthly = [
+  { month: 'Jan', pv: 36600,  load: 372500, grid: 335900 },
+  { month: 'Feb', pv: 48400,  load: 336400, grid: 288000 },
+  { month: 'Mar', pv: 72100,  load: 355400, grid: 283300 },
+  { month: 'Apr', pv: 93300,  load: 327700, grid: 234400 },
+  { month: 'May', pv: 114000, load: 288100, grid: 174100 },
+  { month: 'Jun', pv: 125800, load: 262000, grid: 136200 },
+  { month: 'Jul', pv: 129900, load: 236900, grid: 107000 },
+  { month: 'Aug', pv: 118100, load: 236900, grid: 118800 },
+  { month: 'Sep', pv: 92100,  load: 311400, grid: 219300 },
+  { month: 'Oct', pv: 63800,  load: 355400, grid: 291600 },
+  { month: 'Nov', pv: 40200,  load: 343900, grid: 303700 },
+  { month: 'Dec', pv: 30700,  load: 372500, grid: 341800 },
+]
+
+export const yearly = [
+  { year: '2020', pv: 992000,  load: 3800000, grid: 2808000 },
+  { year: '2021', pv: 988000,  load: 3819000, grid: 2831000 },
+  { year: '2022', pv: 984000,  load: 3838000, grid: 2854000 },
+  { year: '2023', pv: 980000,  load: 3857000, grid: 2877000 },
+  { year: '2024', pv: 976000,  load: 3876000, grid: 2900000 },
+  { year: '2025', pv: 972000,  load: 3896000, grid: 2924000 },
+]
