@@ -91,7 +91,7 @@ function ProfileModal({ onClose, onProfileSave }) {
   const [saved, setSaved] = useState(false)
   const [passError, setPassError] = useState('')
 
-  // Verification (email / password changes require a code).
+ 
   const [phase, setPhase] = useState('edit')
   const [pendingCode, setPendingCode] = useState('')
   const [enteredCode, setEnteredCode] = useState('')
@@ -130,7 +130,7 @@ function ProfileModal({ onClose, onProfileSave }) {
       } catch { setVerifyError(v.sendError) }
       setSending(false)
     } else {
-      setDevCode(code) // dev fallback so the flow is testable without keys
+      setDevCode(code) 
     }
   }
 
@@ -143,7 +143,7 @@ function ProfileModal({ onClose, onProfileSave }) {
     }
     setPassError('')
     const emailChanged = email.trim() !== originalEmail.current
-    if (!emailChanged && !wantsPass) { commit(); flashSaved(); return } // name-only: no code
+    if (!emailChanged && !wantsPass) { commit(); flashSaved(); return } 
     setPhase('verify')
     await sendCode(emailChanged ? email.trim() : originalEmail.current)
   }
@@ -242,7 +242,7 @@ function SettingsModal({ onClose }) {
   const profileEmail = localStorage.getItem('profile_email') || 'volkansahin499@gmail.com'
   const profileName = localStorage.getItem('profile_name') || ''
   const [emailAlerts, setEmailAlerts] = useState(() => localStorage.getItem('email_alerts') !== '0')
-  const [alertStatus, setAlertStatus] = useState('') // '' | sending | sent | error | unconfigured
+  const [alertStatus, setAlertStatus] = useState('') 
   const [dashboardAlerts, setDashboardAlerts] = useState(true)
   const [darkMode, setDarkMode] = useState(() => document.documentElement.getAttribute('data-theme') === 'dark')
   const [pendingLang, setPendingLang] = useState(lang)
@@ -254,7 +254,7 @@ function SettingsModal({ onClose }) {
     localStorage.setItem('theme', val ? 'dark' : 'light')
   }
 
-  // Toggling email alerts ON sends a real confirmation email to the profile address.
+  
   const handleEmailAlerts = async (val) => {
     setEmailAlerts(val)
     localStorage.setItem('email_alerts', val ? '1' : '0')

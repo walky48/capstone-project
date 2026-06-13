@@ -1,13 +1,12 @@
 import { pvModels, bessModels } from '../data/models'
 import { buildHourlyLoad } from './loadProfile'
 
-const GHI_ISTANBUL = 1680 // kWh/m²/yr, NASA POWER average
-const PANEL_AREA = 2.7    // m² per 72-cell panel (approx 2390x1134mm)
-const TARIFF_TL = 3.5     // TL/kWh
-const PV_COST_PER_KWP = 9600  // TL (≈ 300 USD × 32)
-const BESS_COST_PER_KWH = 6400 // TL (≈ 200 USD × 32)
+const GHI_ISTANBUL = 1680
+const PANEL_AREA = 2.7
+const TARIFF_TL = 3.5
+const PV_COST_PER_KWP = 9600
+const BESS_COST_PER_KWH = 6400
 
-// Distribute a daily PV total over a clear-sky half-sine (sunrise 06:00 → sunset 19:00).
 function pvHourly(dailyPV) {
   const sr = 6, ss = 19
   const shape = Array.from({ length: 24 }, (_, h) =>
@@ -16,10 +15,6 @@ function pvHourly(dailyPV) {
   return shape.map(x => (s > 0 ? (x / s) * dailyPV : 0))
 }
 
-// Resolve the usable PV area from the Campus Info inputs.
-// "single"      → one total roof-area number (rough sizing)
-// "perBuilding" → area per building × number of buildings (precise sizing)
-// Extended mode adds parking/open area for carport (canopy) PV.
 export function effectivePvArea(data) {
   const buildings = parseFloat(data.buildings) || 0
   const perBuildingArea = parseFloat(data.roofAreaPerBuilding) || 0
@@ -64,8 +59,6 @@ export function computeSimulation(data) {
   const usable = bessCap * ((bess.dod || 90) / 100)
   const bessEff = (bess.rte || 92) / 100
 
-  // Hour-by-hour dispatch: PV serves load first, surplus charges the battery,
-  // remaining deficit discharges the battery, then the grid covers the rest.
   let pvToLoad = 0, pvToBess = 0, bessToLoad = 0, gridToLoad = 0, soc = 0
   const hourlyProfile = []
   for (let h = 0; h < 24; h++) {

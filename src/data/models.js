@@ -6,9 +6,6 @@ export const pvModels = {
   'JKM580N-72HL4-BDV': { kwp: '0.580', tech: 'N-type Mono-crystalline Bifacial', eff: '22.45%' },
 }
 
-// Properties are characteristic of each chemistry and not user-editable —
-// selecting a technology fixes its DoD, round-trip efficiency, duration and
-// power-converter rating (power = capacity / duration).
 export const bessModels = {
   'Model A - LFP': { cap: '1500', tech: 'LFP (Lithium Iron Phosphate)', dod: 90, rte: 95, duration: 4, power: 375 },
   'Model B - Li-Ion': { cap: '1000', tech: 'Lithium-Ion (Li-Ion)', dod: 90, rte: 92, duration: 2, power: 500 },

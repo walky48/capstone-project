@@ -16,8 +16,6 @@ const pdfSafe = s => String(s ?? '')
   .replace(/→/g, '->').replace(/·/g, '-').replace(/₺/g, 'TL')
   .replace(/₂/g, '2').replace(/°/g, 'deg').replace(/²/g, '2')
 
-// Visual config + English PDF titles (jsPDF core fonts can't render ş/ğ/ı, so
-// the generated documents stay English while the page UI is localised).
 const REPORTS = {
   executive: { icon: Sparkles, color: '#2563eb', bg: '#eff6ff', pdfTitle: 'Executive Summary' },
   energy: { icon: BarChart3, color: '#0891b2', bg: '#ecfeff', pdfTitle: 'Energy Performance' },

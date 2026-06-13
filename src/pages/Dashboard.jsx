@@ -209,24 +209,24 @@ export default function Dashboard() {
     if (exportFormat === 'pdf') {
       blob = buildPdf(rangeLabel).output('blob')
     } else if (exportFormat === 'json') {
-      const out = { exported: new Date().toISOString(), campus: 'BAU Kemerburgaz' }
-      out.kpis = KPI_DATA.map(k => ({ name: t.dashboard.kpis[k.key], value: k.value, unit: k.unit }))
+      const out = { exported: new Date().toISOString(), campus: sim?.campusName || 'BAU Kemerburgaz' }
+      out.kpis = activeKPIs.map(k => ({ name: t.dashboard.kpis[k.key], value: k.value, unit: k.unit }))
       if (exportScope === 'current') { out.range = rangeLabel; out.chartData = chartData }
-      else if (exportScope === 'all') { out.hourly = hourly; out.weekly = weekly; out.monthly = monthly; out.yearly = yearly }
+      else if (exportScope === 'all') { out.hourly = activeHourly; out.weekly = activeWeekly; out.monthly = activeMonthly; out.yearly = activeYearly }
       blob = new Blob([JSON.stringify(out, null, 2)], { type: 'application/json' })
     } else {
       const block = (data, key) => {
         const hdr = [key, 'PV', 'Load', 'Grid'].join(',')
         return [hdr, ...data.map(r => [r[key], r.pv, r.load, r.grid].join(','))].join('\n')
       }
-      const kpiLines = KPI_DATA.map(k => `${t.dashboard.kpis[k.key]},${k.value},${k.unit}`).join('\n')
-      let body = `BAU Kemerburgaz Campus - Dashboard Export\nExported: ${new Date().toLocaleString()}\n\n== KPI Summary ==\n${kpiLines}\n\n`
+      const kpiLines = activeKPIs.map(k => `${t.dashboard.kpis[k.key]},${k.value},${k.unit}`).join('\n')
+      let body = `${sim?.campusName || 'BAU Kemerburgaz'} - Dashboard Export\nExported: ${new Date().toLocaleString()}\n\n== KPI Summary ==\n${kpiLines}\n\n`
       if (exportScope === 'current') body += `== Energy Balance (${rangeLabel}) ==\n` + block(chartData, xKey)
       else if (exportScope === 'all') {
-        body += '== Hourly ==\n' + block(hourly, 'hour') + '\n\n'
-        body += '== Weekly ==\n' + block(weekly, 'day') + '\n\n'
-        body += '== Monthly ==\n' + block(monthly, 'month') + '\n\n'
-        body += '== Yearly ==\n' + block(yearly, 'year')
+        body += '== Hourly ==\n' + block(activeHourly, 'hour') + '\n\n'
+        body += '== Weekly ==\n' + block(activeWeekly, 'day') + '\n\n'
+        body += '== Monthly ==\n' + block(activeMonthly, 'month') + '\n\n'
+        body += '== Yearly ==\n' + block(activeYearly, 'year')
       }
       blob = new Blob([body], { type: 'text/csv' })
     }
@@ -396,7 +396,7 @@ export default function Dashboard() {
           <div style={{ fontSize: 14, fontWeight: 600, color: '#0f172a', marginBottom: 2 }}>{t.dashboard.monthlyBalance}</div>
           <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 16 }}>{t.dashboard.monthlyBalanceSub}</div>
           <ResponsiveContainer width="100%" height={140}>
-            <BarChart data={monthly} barSize={10} margin={{ top: 0, right: 4, left: -20, bottom: 0 }}>
+            <BarChart data={activeMonthly} barSize={10} margin={{ top: 0, right: 4, left: -20, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
               <XAxis dataKey="month" tick={{ fontSize: 10, fill: '#94a3b8' }} tickLine={false} axisLine={false} />
               <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} tickLine={false} axisLine={false} tickFormatter={fmtTick} />

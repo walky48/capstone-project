@@ -77,7 +77,6 @@ function Segmented({ options, value, onChange }) {
   )
 }
 
-
 function MapPicker({ lat, lon, onPick }) {
   const containerRef = useRef(null)
   const mapRef = useRef(null)
@@ -100,10 +99,8 @@ function MapPicker({ lat, lon, onPick }) {
     markerRef.current = marker
     const t = setTimeout(() => { if (mapRef.current === map) map.invalidateSize() }, 120)
     return () => { clearTimeout(t); map.remove(); mapRef.current = null; markerRef.current = null }
-
   }, [])
 
-  
   useEffect(() => {
     const map = mapRef.current, marker = markerRef.current
     if (!map || !marker) return
@@ -137,8 +134,6 @@ function MapPicker({ lat, lon, onPick }) {
   )
 }
 
-// LettuceMeet-style paintable grid: rows = days, columns = hours.
-// Click or drag across cells to mark the campus's peak-consumption periods.
 function PeakGrid({ value, onChange }) {
   const paint = useRef(null)
   useEffect(() => {
@@ -175,7 +170,6 @@ function PeakGrid({ value, onChange }) {
   )
 }
 
-// Inline bar preview of the generated 24-hour load shape.
 function ProfilePreview({ data }) {
   const { load } = buildHourlyLoad(data)
   const max = Math.max(...load, 1)
@@ -202,11 +196,10 @@ function Step1({ data, setData }) {
   const mode = data.sizingMode || 'single'
   const fmt = (n) => Math.round(n).toLocaleString()
 
-  const [geo, setGeo] = useState('') // '' | 'searching' | 'notfound'
+  const [geo, setGeo] = useState('')
   const firstRun = useRef(true)
   const skipGeocode = useRef(false)
 
-  // City typed → move the map there (debounced forward geocoding).
   useEffect(() => {
     if (firstRun.current) { firstRun.current = false; return }
     if (skipGeocode.current) { skipGeocode.current = false; return }
@@ -223,10 +216,8 @@ function Step1({ data, setData }) {
       }
     }, 700)
     return () => clearTimeout(id)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data.city])
 
-  // Map click/drag → set coordinates and reverse-geocode the city name.
   const handlePick = async (lat, lon) => {
     setData(d => ({ ...d, lat, lon }))
     const city = await reverseGeocode(lat, lon)
@@ -253,75 +244,75 @@ function Step1({ data, setData }) {
         <Field label="Number of Buildings" style={{ gridColumn: '1/-1' }} help="Used for per-building (precise) sizing"><Input type="number" value={data.buildings} onChange={e => upd('buildings', e.target.value)} /></Field>
       </div>
 
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 14, flexWrap: 'wrap' }}>
-            <div style={{ fontSize: 13, fontWeight: 600, color: '#0f172a' }}>Available PV Area</div>
-            <Segmented
-              value={mode}
-              onChange={v => upd('sizingMode', v)}
-              options={[
-                { value: 'single', label: 'One Space · rough', icon: <LayoutGrid size={13} /> },
-                { value: 'perBuilding', label: 'Per Building · precise', icon: <Building2 size={13} /> },
-              ]}
-            />
-          </div>
-
-          {mode === 'single' ? (
-            <Field label="Total Available Roof Area (m²)" help="The free rooftop surface across the whole campus — quick, approximate sizing">
-              <Input type="number" value={data.roofArea} onChange={e => upd('roofArea', e.target.value)} />
-            </Field>
-          ) : (
-            <Field label="Available Area per Building (m²)" help={`Free rooftop area on a typical building — multiplied by ${parseInt(data.buildings) || 0} buildings for precise sizing`}>
-              <Input type="number" value={data.roofAreaPerBuilding} onChange={e => upd('roofAreaPerBuilding', e.target.value)} />
-            </Field>
-          )}
+      <div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 14, flexWrap: 'wrap' }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: '#0f172a' }}>Available PV Area</div>
+          <Segmented
+            value={mode}
+            onChange={v => upd('sizingMode', v)}
+            options={[
+              { value: 'single', label: 'One Space · rough', icon: <LayoutGrid size={13} /> },
+              { value: 'perBuilding', label: 'Per Building · precise', icon: <Building2 size={13} /> },
+            ]}
+          />
         </div>
 
-        <div>
-          <button type="button" onClick={() => upd('extendedEnabled', !data.extendedEnabled)} style={{
-            width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 8, cursor: 'pointer', textAlign: 'left',
-            border: data.extendedEnabled ? '1px solid #2563eb' : '1px solid #e2e8f0',
-            background: data.extendedEnabled ? '#eff6ff' : '#fff', transition: 'all 0.15s'
-          }}>
-            <div style={{
-              width: 20, height: 20, borderRadius: 5, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-              background: data.extendedEnabled ? '#2563eb' : '#fff', border: data.extendedEnabled ? 'none' : '1.5px solid #cbd5e1'
-            }}>
-              {data.extendedEnabled && <Check size={13} color="#fff" />}
-            </div>
-            <Car size={17} color={data.extendedEnabled ? '#2563eb' : '#94a3b8'} style={{ flexShrink: 0 }} />
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 600, color: data.extendedEnabled ? '#1d4ed8' : '#334155' }}>Parking Canopy PV</div>
-              <div style={{ fontSize: 11, color: '#64748b' }}>Optional · add carport solar over open parking for more generation</div>
-            </div>
-            <span style={{ marginLeft: 'auto', fontSize: 10, fontWeight: 700, letterSpacing: 0.5, color: data.extendedEnabled ? '#2563eb' : '#94a3b8', border: `1px solid ${data.extendedEnabled ? '#bfdbfe' : '#e2e8f0'}`, borderRadius: 5, padding: '3px 7px' }}>EXTENDED</span>
-          </button>
-          {data.extendedEnabled && (
-            <div style={{ marginTop: 12 }}>
-              <Field label="Parking / Open Area (m²)" help="Open lots get PV canopies (carports) — extra area that adds to total generation">
-                <Input type="number" value={data.parkingArea} onChange={e => upd('parkingArea', e.target.value)} />
-              </Field>
-            </div>
-          )}
-        </div>
-
-        <Card style={{ padding: 16, background: '#f0f9ff', borderColor: '#bae6fd' }}>
-          <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-            <MapPin size={18} color="#0891b2" style={{ flexShrink: 0, marginTop: 1 }} />
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: '#0c4a6e', marginBottom: 4 }}>Location &amp; Sizing Summary</div>
-              <div style={{ fontSize: 12, color: '#0369a1', lineHeight: 1.6 }}>
-                {data.campusName || 'Campus'} · {data.lat}°N, {data.lon}°E · GHI 1,680 kWh/m²/yr · Optimum tilt 33°<br />
-                Usable PV area: <b>{fmt(area.total)} m²</b>
-                {area.parking > 0 && <> ({fmt(area.baseArea)} roof + {fmt(area.parking)} carport)</>}
-                {' '}· ≈ <b>{area.numPanels.toLocaleString()} panels</b>
-                {mode === 'perBuilding' && <> · ~{area.panelsPerBuilding} per building</>}
-              </div>
-            </div>
-          </div>
-        </Card>
+        {mode === 'single' ? (
+          <Field label="Total Available Roof Area (m²)" help="The free rooftop surface across the whole campus — quick, approximate sizing">
+            <Input type="number" value={data.roofArea} onChange={e => upd('roofArea', e.target.value)} />
+          </Field>
+        ) : (
+          <Field label="Available Area per Building (m²)" help={`Free rooftop area on a typical building — multiplied by ${parseInt(data.buildings) || 0} buildings for precise sizing`}>
+            <Input type="number" value={data.roofAreaPerBuilding} onChange={e => upd('roofAreaPerBuilding', e.target.value)} />
+          </Field>
+        )}
       </div>
-    )
+
+      <div>
+        <button type="button" onClick={() => upd('extendedEnabled', !data.extendedEnabled)} style={{
+          width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 8, cursor: 'pointer', textAlign: 'left',
+          border: data.extendedEnabled ? '1px solid #2563eb' : '1px solid #e2e8f0',
+          background: data.extendedEnabled ? '#eff6ff' : '#fff', transition: 'all 0.15s'
+        }}>
+          <div style={{
+            width: 20, height: 20, borderRadius: 5, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: data.extendedEnabled ? '#2563eb' : '#fff', border: data.extendedEnabled ? 'none' : '1.5px solid #cbd5e1'
+          }}>
+            {data.extendedEnabled && <Check size={13} color="#fff" />}
+          </div>
+          <Car size={17} color={data.extendedEnabled ? '#2563eb' : '#94a3b8'} style={{ flexShrink: 0 }} />
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: data.extendedEnabled ? '#1d4ed8' : '#334155' }}>Parking Canopy PV</div>
+            <div style={{ fontSize: 11, color: '#64748b' }}>Optional · add carport solar over open parking for more generation</div>
+          </div>
+          <span style={{ marginLeft: 'auto', fontSize: 10, fontWeight: 700, letterSpacing: 0.5, color: data.extendedEnabled ? '#2563eb' : '#94a3b8', border: `1px solid ${data.extendedEnabled ? '#bfdbfe' : '#e2e8f0'}`, borderRadius: 5, padding: '3px 7px' }}>EXTENDED</span>
+        </button>
+        {data.extendedEnabled && (
+          <div style={{ marginTop: 12 }}>
+            <Field label="Parking / Open Area (m²)" help="Open lots get PV canopies (carports) — extra area that adds to total generation">
+              <Input type="number" value={data.parkingArea} onChange={e => upd('parkingArea', e.target.value)} />
+            </Field>
+          </div>
+        )}
+      </div>
+
+      <Card style={{ padding: 16, background: '#f0f9ff', borderColor: '#bae6fd' }}>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+          <MapPin size={18} color="#0891b2" style={{ flexShrink: 0, marginTop: 1 }} />
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#0c4a6e', marginBottom: 4 }}>Location &amp; Sizing Summary</div>
+            <div style={{ fontSize: 12, color: '#0369a1', lineHeight: 1.6 }}>
+              {data.campusName || 'Campus'} · {data.lat}°N, {data.lon}°E · GHI 1,680 kWh/m²/yr · Optimum tilt 33°<br />
+              Usable PV area: <b>{fmt(area.total)} m²</b>
+              {area.parking > 0 && <> ({fmt(area.baseArea)} roof + {fmt(area.parking)} carport)</>}
+              {' '}· ≈ <b>{area.numPanels.toLocaleString()} panels</b>
+              {mode === 'perBuilding' && <> · ~{area.panelsPerBuilding} per building</>}
+            </div>
+          </div>
+        </div>
+      </Card>
+    </div>
+  )
 }
 
 const StepContent = ({ step, data, setData }) => {

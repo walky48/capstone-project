@@ -1,8 +1,5 @@
-// Forward / reverse geocoding via OpenStreetMap's free Nominatim service
-// (no API key). Used to keep the City/Region field and the map in sync.
 const NOMINATIM = 'https://nominatim.openstreetmap.org'
 
-// City name → coordinates (for moving the map when the user types a city).
 export async function geocodeCity(query) {
   try {
     const res = await fetch(`${NOMINATIM}/search?format=json&limit=1&accept-language=en&q=${encodeURIComponent(query)}`)
@@ -14,7 +11,6 @@ export async function geocodeCity(query) {
   }
 }
 
-// Coordinates → city/region name (for filling the field when the map is clicked).
 export async function reverseGeocode(lat, lon) {
   try {
     const res = await fetch(`${NOMINATIM}/reverse?format=json&zoom=10&accept-language=en&lat=${lat}&lon=${lon}`)
