@@ -70,32 +70,40 @@ export default function Forecast() {
               <div style={{ fontSize: 14, fontWeight: 600, color: '#0f172a', marginBottom: 2 }}>{t.forecast.targets[0]} {t.forecast.forecastLabel}</div>
               <div style={{ fontSize: 12, color: '#94a3b8' }}>{t.forecast.actualVsModel} · {t.forecast.models[0]}</div>
             </div>
-            <ResponsiveContainer width="100%" height={260}>
-              <LineChart data={forecastData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#94a3b8' }} tickLine={false} axisLine={false} interval={Math.max(0, Math.floor(forecastData.length / 8))} />
-                <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} tickLine={false} axisLine={false} />
-                <Tooltip content={<ChartTooltip />} />
-                <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11, paddingTop: 12 }} />
-                <Line type="monotone" dataKey="actual" name={t.forecast.actual} stroke="#0f172a" strokeWidth={2} dot={false} />
-                <Line type="monotone" dataKey="forecast" name={t.forecast.forecastLabel} stroke="#2563eb" strokeWidth={2} strokeDasharray="5 3" dot={false} />
-              </LineChart>
-            </ResponsiveContainer>
+            {forecastData.length ? (
+              <ResponsiveContainer width="100%" height={260}>
+                <LineChart data={forecastData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                  <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#94a3b8' }} tickLine={false} axisLine={false} interval={Math.max(0, Math.floor(forecastData.length / 8))} />
+                  <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} tickLine={false} axisLine={false} />
+                  <Tooltip content={<ChartTooltip />} />
+                  <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11, paddingTop: 12 }} />
+                  <Line type="monotone" dataKey="actual" name={t.forecast.actual} stroke="#0f172a" strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="forecast" name={t.forecast.forecastLabel} stroke="#2563eb" strokeWidth={2} strokeDasharray="5 3" dot={false} />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <div style={{ height: 260, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: 13 }}>{t.forecast.noForecast}</div>
+            )}
           </Card>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
             <Card style={{ padding: '20px 20px 16px' }}>
               <div style={{ fontSize: 14, fontWeight: 600, color: '#0f172a', marginBottom: 2 }}>{t.forecast.pvForecastTitle}</div>
               <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 16 }}>{t.forecast.pvForecastSub}</div>
-              <ResponsiveContainer width="100%" height={160}>
-                <LineChart data={pvData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                  <XAxis dataKey="day" tick={{ fontSize: 10, fill: '#94a3b8' }} tickLine={false} axisLine={false} interval={Math.max(0, Math.floor(pvData.length / 6))} />
-                  <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} tickLine={false} axisLine={false} />
-                  <Tooltip content={<ChartTooltip />} />
-                  <Line type="monotone" dataKey="pv" name={t.dashboard.chartLabels.pv} stroke="#f59e0b" strokeWidth={2} dot={false} />
-                </LineChart>
-              </ResponsiveContainer>
+              {pvData.length ? (
+                <ResponsiveContainer width="100%" height={160}>
+                  <LineChart data={pvData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                    <XAxis dataKey="day" tick={{ fontSize: 10, fill: '#94a3b8' }} tickLine={false} axisLine={false} interval={Math.max(0, Math.floor(pvData.length / 6))} />
+                    <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} tickLine={false} axisLine={false} />
+                    <Tooltip content={<ChartTooltip />} />
+                    <Line type="monotone" dataKey="pv" name={t.dashboard.chartLabels.pv} stroke="#f59e0b" strokeWidth={2} dot={false} />
+                  </LineChart>
+                </ResponsiveContainer>
+              ) : (
+                <div style={{ height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: 13 }}>{t.forecast.noForecast}</div>
+              )}
             </Card>
 
             <Card style={{ padding: '20px' }}>
