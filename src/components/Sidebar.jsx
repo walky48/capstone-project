@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react'
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, Settings, ListChecks, GitCompare, TrendingUp, FileText, LogOut, Menu, ChevronRight, SlidersHorizontal, X, Bell, Moon, User, Mail, Lock, Eye, EyeOff, Check } from 'lucide-react'
+import { LayoutDashboard, Settings, ListChecks, GitCompare, TrendingUp, Sun, FileText, LogOut, Menu, ChevronRight, SlidersHorizontal, X, Bell, Moon, User, Mail, Lock, Eye, EyeOff, Check } from 'lucide-react'
 import { useLang } from '../hooks/useLang'
 import { sendEmail, isEmailConfigured, genCode } from '../utils/email'
 
@@ -10,6 +10,7 @@ const navRoutes = [
   { key: 'scenarios', icon: ListChecks, to: '/scenarios' },
   { key: 'compare', icon: GitCompare, to: '/compare' },
   { key: 'forecast', icon: TrendingUp, to: '/forecast' },
+  { key: 'pvAnalysis', icon: Sun, to: '/pv-analysis' },
   { key: 'reports', icon: FileText, to: '/reports' },
 ]
 

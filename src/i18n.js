@@ -2,7 +2,7 @@ export const translations = {
   en: {
     nav: {
       dashboard: 'Dashboard', setup: 'Project Setup', scenarios: 'Scenarios',
-      compare: 'Comparison', forecast: 'Forecasting', reports: 'Reports',
+      compare: 'Comparison', forecast: 'Forecasting', pvAnalysis: 'PV Analysis', reports: 'Reports',
       settings: 'Settings', signOut: 'Sign Out',
     },
     dashboard: {
@@ -18,7 +18,7 @@ export const translations = {
       bessState: 'State', bessCharging: 'Charging', bessPower: 'Power', bessTemp: 'Capacity', bessETA: 'Full charge',
       monthlyBalance: 'Daily Energy Balance', monthlyBalanceSub: 'PV generation vs demand · per day',
       quickStats: 'Quick Statistics',
-      stats: { specificYield: 'Specific Yield', lcoe: 'LCOE', co2Avoided: 'CO₂ Avoided', paybackPeriod: 'Payback Period (PBP)', panelModel: 'Panel Model', gridCO2: 'Grid CO₂ Factor' },
+      stats: { specificYield: 'Specific Yield', lcoe: 'LCOE', co2Avoided: 'CO₂ Avoided', paybackPeriod: 'Payback Period (PBP)', panelModel: 'Panel Model', gridCO2: 'Grid CO₂ Factor', selfConsumption: 'Self-Consumption', renewableFraction: 'Renewable Fraction', trees: 'Trees Equivalent', npv: 'Net Present Value' },
       ranges: ['Hourly', 'Daily', 'Weekly', 'Monthly'],
       chartLabels: { pv: 'PV Generation', load: 'Load', grid: 'Grid' },
       suggestions: 'Recommendations',
@@ -67,6 +67,23 @@ export const translations = {
       modelInfo: { model: 'Model', trainingPeriod: 'Training Period', featureCount: 'Feature Count', validationSet: 'Validation Set', dataSources: 'Data Sources', lastUpdated: 'Last Updated', crossValidation: 'Cross-Validation' },
       metricDescs: ['Root Mean Square Error', 'Mean Absolute Error', 'Mean Abs. Percentage Error', 'Coefficient of Determination'],
       actualVsModel: 'Actual vs. model output',
+    },
+    pvAnalysis: {
+      sectionLabel: 'Solar Engineering',
+      title: 'PV Generation Analysis',
+      subtitle: 'Physics-based hourly yield · NASA POWER irradiance',
+      empty: 'Configure a project in Setup to run the PV analysis.',
+      noApi: 'Backend not connected — PV analysis needs the live API.',
+      goSetup: 'Go to Project Setup',
+      loading: 'Computing PV generation…',
+      tilt: 'Tilt (auto)', azimuth: 'Azimuth (auto)', capacity: 'PV Capacity', panels: 'Panels', total: 'Total Generation', degradation: 'Degradation',
+      generation: 'Generation',
+      dailyTitle: 'Daily Generation', dailySub: 'Total PV output per day',
+      irradianceTitle: 'Irradiance', irradianceSub: 'Representative day · W/m²',
+      benchmarkTitle: 'PVGIS Benchmark', benchmarkSub: 'Our engine vs PVGIS · annual',
+      runBenchmark: 'Compare with PVGIS', benchmarkRunning: 'Running 1-year benchmark…',
+      ourYearly: 'Our estimate', pvgisYearly: 'PVGIS', deviation: 'Deviation',
+      monthlyTitle: 'Monthly Comparison',
     },
     settings: {
       title: 'Settings', subtitle: 'Preferences & account',
@@ -127,7 +144,7 @@ export const translations = {
   tr: {
     nav: {
       dashboard: 'Panel', setup: 'Proje Kurulumu', scenarios: 'Senaryolar',
-      compare: 'Karşılaştırma', forecast: 'Tahmin', reports: 'Raporlar',
+      compare: 'Karşılaştırma', forecast: 'Tahmin', pvAnalysis: 'PV Analizi', reports: 'Raporlar',
       settings: 'Ayarlar', signOut: 'Çıkış Yap',
     },
     dashboard: {
@@ -143,7 +160,7 @@ export const translations = {
       bessState: 'Durum', bessCharging: 'Şarj', bessPower: 'Güç', bessTemp: 'Kapasite', bessETA: 'Tam şarj',
       monthlyBalance: 'Günlük Enerji Dengesi', monthlyBalanceSub: 'GES üretimi - talep karşılaştırması · günlük',
       quickStats: 'Hızlı İstatistikler',
-      stats: { specificYield: 'Özgül Verim', lcoe: 'LCOE', co2Avoided: 'CO₂ Azaltımı', paybackPeriod: 'Geri Ödeme Süresi (PBP)', panelModel: 'Panel Modeli', gridCO2: 'Şebeke CO₂ Faktörü' },
+      stats: { specificYield: 'Özgül Verim', lcoe: 'LCOE', co2Avoided: 'CO₂ Azaltımı', paybackPeriod: 'Geri Ödeme Süresi (PBP)', panelModel: 'Panel Modeli', gridCO2: 'Şebeke CO₂ Faktörü', selfConsumption: 'Öz-Tüketim', renewableFraction: 'Yenilenebilir Oranı', trees: 'Ağaç Eşdeğeri', npv: 'Net Bugünkü Değer' },
       ranges: ['Saatlik', 'Günlük', 'Haftalık', 'Aylık'],
       chartLabels: { pv: 'GES Üretimi', load: 'Yük', grid: 'Şebeke' },
       suggestions: 'Öneriler',
@@ -192,6 +209,23 @@ export const translations = {
       modelInfo: { model: 'Model', trainingPeriod: 'Eğitim Dönemi', featureCount: 'Özellik Sayısı', validationSet: 'Doğrulama Seti', dataSources: 'Veri Kaynakları', lastUpdated: 'Son Güncelleme', crossValidation: 'Çapraz Doğrulama' },
       metricDescs: ['Kök Ortalama Kare Hatası', 'Ortalama Mutlak Hata', 'Ort. Mutlak Yüzde Hatası', 'Determinasyon Katsayısı'],
       actualVsModel: 'Gerçek - model çıktısı karşılaştırması',
+    },
+    pvAnalysis: {
+      sectionLabel: 'Güneş Mühendisliği',
+      title: 'PV Üretim Analizi',
+      subtitle: 'Fizik tabanlı saatlik verim · NASA POWER ışınımı',
+      empty: 'PV analizini çalıştırmak için Kurulum sayfasında bir proje yapılandırın.',
+      noApi: 'Backend bağlı değil — PV analizi canlı API gerektirir.',
+      goSetup: 'Proje Kurulumuna Git',
+      loading: 'PV üretimi hesaplanıyor…',
+      tilt: 'Eğim (oto)', azimuth: 'Azimut (oto)', capacity: 'PV Kapasitesi', panels: 'Panel', total: 'Toplam Üretim', degradation: 'Degradasyon',
+      generation: 'Üretim',
+      dailyTitle: 'Günlük Üretim', dailySub: 'Günlük toplam PV üretimi',
+      irradianceTitle: 'Işınım', irradianceSub: 'Temsili gün · W/m²',
+      benchmarkTitle: 'PVGIS Karşılaştırması', benchmarkSub: 'Bizim motor vs PVGIS · yıllık',
+      runBenchmark: 'PVGIS ile Karşılaştır', benchmarkRunning: '1 yıllık kıyas çalışıyor…',
+      ourYearly: 'Bizim tahmin', pvgisYearly: 'PVGIS', deviation: 'Sapma',
+      monthlyTitle: 'Aylık Karşılaştırma',
     },
     settings: {
       title: 'Ayarlar', subtitle: 'Tercihler ve hesap',

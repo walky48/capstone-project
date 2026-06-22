@@ -109,8 +109,12 @@ function buildReport(type, sim, draft) {
       ['Payback Period', `${sim.paybackYears} yrs`],
       ['LCOE', `$${sim.lcoe}/kWh`],
       ['NPV (lifetime)', econ.npv != null ? `$${fmt(econ.npv)}` : '-'],
+      ['Inverters', econ.num_inverters != null ? `${econ.num_inverters} units` : '-'],
+      ['Inverter CAPEX', econ.inverter_capex != null ? `$${fmt(econ.inverter_capex)}` : '-'],
+      ['Annual OPEX', econ.opex_annual != null ? `$${fmt(econ.opex_annual)}/yr` : '-'],
       ['Annual PV Generation', `${fmt(sim.annualPV)} kWh/yr`],
       ['CO2 Avoided', `${fmt(sim.co2AvoidedDaily * 365)} kg/yr`],
+      ['Trees Equivalent', econ.trees_equivalent != null ? `${fmt(econ.trees_equivalent)} trees/yr` : '-'],
     ])
     doc.setFontSize(8); doc.setFont('helvetica', 'italic'); doc.setTextColor(...GRAY)
     doc.text(`Assumes a tariff of $${tariff}/kWh and a ${lifetime}-year system lifetime.`, 14, y)

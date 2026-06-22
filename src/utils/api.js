@@ -105,3 +105,43 @@ export async function runAnalyze(data, file) {
   }
   return res.json()
 }
+
+// request body shared by the physics-based PV endpoints
+export function buildPvRequest(data) {
+  const preset = PV_PRESETS.find(p => p.model === data.pvModel) || PV_PRESETS[0]
+  const area = effectivePvArea(data)
+  return {
+    location: { lat: num(data.lat, 41.04), lon: num(data.lon, 29.0), city: data.city || null },
+    site: { usable_rooftop_m2: Math.max(1, Math.round(area.total)) },
+    pv: {
+      panel_model: preset.model,
+      panel_width_m: preset.panel_width_m,
+      panel_length_m: preset.panel_length_m,
+      panel_power_wp: preset.panel_power_wp,
+      performance_ratio: num(data.performanceRatio, 0.885),
+      degradation_rate: preset.degradation_rate ?? 0.005,
+    },
+    start_date: new Date().toISOString().slice(0, 10),
+    duration_days: Math.min(365, Math.max(1, parseInt(data.simDurationDays, 10) || 7)),
+  }
+}
+
+async function postPv(path, data) {
+  if (!API_BASE) throw new Error('Backend API is not configured (VITE_API_URL).')
+  const res = await fetch(apiUrl(path), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(buildPvRequest(data)),
+  })
+  if (!res.ok) {
+    const detail = await res.text().catch(() => '')
+    throw new Error(`${path} failed (${res.status}) ${detail.slice(0, 200)}`)
+  }
+  return res.json()
+}
+
+// detailed physics-based hourly PV generation (NASA POWER + solar geometry)
+export const fetchPvGeneration = (data) => postPv('/api/v1/pv-generation', data)
+
+// our PV engine benchmarked against PVGIS (runs a full-year simulation)
+export const fetchPvBenchmark = (data) => postPv('/api/v1/pv-generation/benchmark', data)

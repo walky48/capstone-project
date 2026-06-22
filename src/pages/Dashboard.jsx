@@ -86,6 +86,10 @@ export default function Dashboard() {
     { key: 'paybackPeriod', value: `${sim.paybackYears} yrs`, color: '#0891b2' },
     { key: 'panelModel', value: sim.pvModel ? `${sim.pvModel} · ${sim.pvEff}` : 'JKM570N · 22.07%', color: '#64748b' },
     { key: 'gridCO2', value: '500 g CO₂/kWh', color: '#dc2626' },
+    ...(sim.selfConsumption != null ? [{ key: 'selfConsumption', value: `${sim.selfConsumption}%`, color: '#0891b2' }] : []),
+    ...(sim.renewableFraction != null ? [{ key: 'renewableFraction', value: `${sim.renewableFraction}%`, color: '#10b981' }] : []),
+    ...(sim.treesEquivalent != null ? [{ key: 'trees', value: `${fmtNum(sim.treesEquivalent)} /yr`, color: '#16a34a' }] : []),
+    ...(sim.npv != null ? [{ key: 'npv', value: `$${fmtNum(sim.npv)}`, color: '#7c3aed' }] : []),
   ] : STATS_DATA
 
   const activeHourly = sim?.hourly?.length ? sim.hourly : (sim?.hourlyProfile?.length ? sim.hourlyProfile : hourly)
@@ -279,6 +283,19 @@ export default function Dashboard() {
           </button>
         </div>
       </div>
+
+      {sim?.feedback?.length > 0 && (
+        <div style={{ display: 'grid', gap: 8, marginBottom: 20 }}>
+          {sim.feedback.map((f, i) => {
+            const c = f.severity === 'error' ? { bg: '#fef2f2', bd: '#fecaca', fg: '#b91c1c' }
+              : f.severity === 'warning' ? { bg: '#fffbeb', bd: '#fde68a', fg: '#92400e' }
+                : { bg: '#eff6ff', bd: '#bfdbfe', fg: '#1d4ed8' }
+            return (
+              <div key={i} style={{ fontSize: 12, color: c.fg, background: c.bg, border: `1px solid ${c.bd}`, borderRadius: 6, padding: '8px 12px' }}>{f.message}</div>
+            )
+          })}
+        </div>
+      )}
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 20 }}>
         {kpis.map(({ label, value, unit, sub, icon: Icon, color, bg, border }) => (

@@ -6,6 +6,7 @@ import Setup from './pages/Setup.jsx'
 import Scenarios from './pages/Scenarios.jsx'
 import Compare from './pages/Compare.jsx'
 import Forecast from './pages/Forecast.jsx'
+import PvAnalysis from './pages/PvAnalysis.jsx'
 import Reports from './pages/Reports.jsx'
 import Login from './pages/Login.jsx'
 
@@ -23,6 +24,7 @@ export default function App() {
         <Route path="scenarios" element={<Scenarios />} />
         <Route path="compare" element={<Compare />} />
         <Route path="forecast" element={<Forecast />} />
+        <Route path="pv-analysis" element={<PvAnalysis />} />
         <Route path="reports" element={<Reports />} />
       </Route>
     </Routes>

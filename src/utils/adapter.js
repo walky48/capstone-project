@@ -132,7 +132,18 @@ export function adaptAnalyzeResponse(resp, data) {
     forecastDaily,
     campusName: data.campusName || 'BAU Kemerburgaz',
     runAt: new Date().toISOString(),
-    // rich backend payload kept for the reports page and the suggestions UI (#3)
+    // extra backend metrics surfaced in the UI
+    selfConsumption: summary.self_consumption_ratio != null ? +(summary.self_consumption_ratio * 100).toFixed(1) : null,
+    renewableFraction: summary.renewable_energy_fraction != null ? +(summary.renewable_energy_fraction * 100).toFixed(1) : null,
+    pvToBessRatio: summary.pv_to_bess_ratio ?? null,
+    treesEquivalent: economics.trees_equivalent != null ? Math.round(economics.trees_equivalent) : null,
+    numInverters: economics.num_inverters ?? null,
+    inverterCapex: economics.inverter_capex ?? null,
+    opexAnnual: economics.opex_annual ?? null,
+    npv: economics.npv ?? null,
+    totalCapex: economics.total_capex ?? null,
+    dailyRef: resp?.daily_ref || [],
+    // rich backend payload kept for the reports page and the suggestions UI
     summary,
     economics,
     suggestions: resp?.suggestions || [],
