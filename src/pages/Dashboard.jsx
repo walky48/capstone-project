@@ -5,7 +5,7 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { Sun, Battery, Zap, TrendingDown, RefreshCw, Download, X, FolderOpen } from 'lucide-react'
 import Card from '../components/ui/Card'
 import ChartTooltip from '../components/ui/Tooltip'
-import { hourly, weekly } from '../data/dashboard'
+import { hourly, weekly, monthly } from '../data/dashboard'
 import { useLang } from '../hooks/useLang'
 
 const KPI_DATA = [
@@ -90,6 +90,8 @@ export default function Dashboard() {
 
   const activeHourly = sim?.hourly?.length ? sim.hourly : (sim?.hourlyProfile?.length ? sim.hourlyProfile : hourly)
   const activeDaily = sim?.daily?.length ? sim.daily : weekly
+  const activeWeekly = sim?.weekly?.length ? sim.weekly : weekly
+  const activeMonthly = sim?.monthly?.length ? sim.monthly : monthly
 
   const bessChargePct = sim?.bessChargePct ?? 64
   const bessCapacityDisplay = sim?.bessCapacity ?? 1500
@@ -97,8 +99,8 @@ export default function Dashboard() {
   const bessState = sim?.bessState ?? 'Charging'
   const bessChargedKwh = Math.round(bessCapacityDisplay * 0.9 * bessChargePct / 100)
 
-  const chartData = [activeHourly, activeDaily][range]
-  const xKey = ['hour', 'day'][range]
+  const chartData = [activeHourly, activeDaily, activeWeekly, activeMonthly][range]
+  const xKey = ['hour', 'day', 'day', 'day'][range]
 
   const kpis = activeKPIs.map(k => ({ ...k, label: t.dashboard.kpis[k.key] }))
   const flows = activeFlows.map((f, i) => ({ ...f, label: t.dashboard.flows[i] }))
@@ -177,6 +179,8 @@ export default function Dashboard() {
       } else {
         addDataTable(activeHourly, 'hour', 'Energy Balance — Hourly')
         addDataTable(activeDaily, 'day', 'Energy Balance — Daily')
+        addDataTable(activeWeekly, 'day', 'Energy Balance — Weekly')
+        addDataTable(activeMonthly, 'day', 'Energy Balance — Monthly')
       }
     }
 
@@ -204,7 +208,7 @@ export default function Dashboard() {
       const out = { exported: new Date().toISOString(), campus: sim?.campusName || 'BAU Kemerburgaz' }
       out.kpis = activeKPIs.map(k => ({ name: t.dashboard.kpis[k.key], value: k.value, unit: k.unit }))
       if (exportScope === 'current') { out.range = rangeLabel; out.chartData = chartData }
-      else if (exportScope === 'all') { out.hourly = activeHourly; out.daily = activeDaily }
+      else if (exportScope === 'all') { out.hourly = activeHourly; out.daily = activeDaily; out.weekly = activeWeekly; out.monthly = activeMonthly }
       blob = new Blob([JSON.stringify(out, null, 2)], { type: 'application/json' })
     } else {
       const block = (data, key) => {
@@ -216,7 +220,9 @@ export default function Dashboard() {
       if (exportScope === 'current') body += `== Energy Balance (${rangeLabel}) ==\n` + block(chartData, xKey)
       else if (exportScope === 'all') {
         body += '== Hourly ==\n' + block(activeHourly, 'hour') + '\n\n'
-        body += '== Daily ==\n' + block(activeDaily, 'day')
+        body += '== Daily ==\n' + block(activeDaily, 'day') + '\n\n'
+        body += '== Weekly ==\n' + block(activeWeekly, 'day') + '\n\n'
+        body += '== Monthly ==\n' + block(activeMonthly, 'day')
       }
       blob = new Blob([body], { type: 'text/csv' })
     }

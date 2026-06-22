@@ -59,15 +59,34 @@ export function adaptAnalyzeResponse(resp, data) {
     date: `${o.date.getDate()}/${o.date.getMonth() + 1}`,
     actual: Math.round(o.load), forecast: Math.round(o.forecast),
   }))
-  const WD = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-  const wd = Array.from({ length: 7 }, () => ({ pv: 0, load: 0, grid: 0, n: 0 }))
+  // weekly totals, grouped by calendar week (Monday start)
+  const byWeek = new Map()
   for (const o of dailyAgg) {
-    const b = wd[(o.date.getDay() + 6) % 7]
-    b.pv += o.pv; b.load += o.load; b.grid += o.grid; b.n += 1
+    const m = new Date(o.date)
+    m.setDate(m.getDate() - ((m.getDay() + 6) % 7))
+    m.setHours(0, 0, 0, 0)
+    const key = m.getTime()
+    const w = byWeek.get(key) || { date: m, pv: 0, load: 0, grid: 0 }
+    w.pv += o.pv; w.load += o.load; w.grid += o.grid
+    byWeek.set(key, w)
   }
-  const weekly = wd.map((b, i) => ({
-    day: WD[i],
-    pv: Math.round(b.n ? b.pv / b.n : 0), load: Math.round(b.n ? b.load / b.n : 0), grid: Math.round(b.n ? b.grid / b.n : 0),
+  const weekly = [...byWeek.values()].sort((a, b) => a.date - b.date).map(w => ({
+    day: `${w.date.getMonth() + 1}/${w.date.getDate()}`,
+    pv: Math.round(w.pv), load: Math.round(w.load), grid: Math.round(w.grid),
+  }))
+
+  // monthly totals, grouped by calendar month
+  const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+  const byMonth = new Map()
+  for (const o of dailyAgg) {
+    const key = `${o.date.getFullYear()}-${o.date.getMonth()}`
+    const mm = byMonth.get(key) || { y: o.date.getFullYear(), m: o.date.getMonth(), pv: 0, load: 0, grid: 0 }
+    mm.pv += o.pv; mm.load += o.load; mm.grid += o.grid
+    byMonth.set(key, mm)
+  }
+  const monthly = [...byMonth.values()].sort((a, b) => a.y - b.y || a.m - b.m).map(mm => ({
+    day: MON[mm.m],
+    pv: Math.round(mm.pv), load: Math.round(mm.load), grid: Math.round(mm.grid),
   }))
 
   const preset = PV_PRESETS.find(p => p.model === data.pvModel)
@@ -109,6 +128,7 @@ export function adaptAnalyzeResponse(resp, data) {
     hourly: hourlyProfile,
     daily,
     weekly,
+    monthly,
     forecastDaily,
     campusName: data.campusName || 'BAU Kemerburgaz',
     runAt: new Date().toISOString(),
