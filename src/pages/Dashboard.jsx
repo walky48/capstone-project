@@ -92,10 +92,10 @@ export default function Dashboard() {
   const activeDaily = sim?.daily?.length ? sim.daily : weekly
   const activeWeekly = sim?.weekly?.length ? sim.weekly : weekly
 
-  const bessChargePct = sim ? sim.bessChargePct : 64
-  const bessCapacityDisplay = sim ? sim.bessCapacity : 1500
-  const bessPower = sim ? sim.bessPower : 375
-  const bessState = sim ? sim.bessState : 'Charging'
+  const bessChargePct = sim?.bessChargePct ?? 64
+  const bessCapacityDisplay = sim?.bessCapacity ?? 1500
+  const bessPower = sim?.bessPower ?? 375
+  const bessState = sim?.bessState ?? 'Charging'
   const bessChargedKwh = Math.round(bessCapacityDisplay * 0.9 * bessChargePct / 100)
 
   const chartData = [activeHourly, activeDaily, activeWeekly][range]
