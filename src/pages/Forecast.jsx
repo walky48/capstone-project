@@ -5,7 +5,6 @@ import Card from '../components/ui/Card'
 import ChartTooltip from '../components/ui/Tooltip'
 import { useLang } from '../hooks/useLang'
 
-// LSTM validation metrics on the held-out test set (project report, Section 5).
 const MODEL_METRICS = [
   { label: 'RMSE', value: '998.87 kWh', good: true },
   { label: 'MAE', value: '601.34 kWh', good: true },

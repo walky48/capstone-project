@@ -25,7 +25,6 @@ export async function fetchPvModels() {
   }
 }
 
-// maps the Setup wizard state to the backend POST /api/v1/analyze request body
 export function buildAnalyzeRequest(data) {
   const preset = PV_PRESETS.find(p => p.model === data.pvModel) || PV_PRESETS[0]
   const bess = bessModels[data.bessModel] || bessModels['Model A - LFP']
@@ -87,7 +86,6 @@ export function buildAnalyzeRequest(data) {
   return req
 }
 
-// posts the scenario to the backend; uploads the user CSV or a synthesized one
 export async function runAnalyze(data, file) {
   if (!API_BASE) throw new Error('Backend API is not configured (VITE_API_URL).')
 
@@ -106,7 +104,6 @@ export async function runAnalyze(data, file) {
   return res.json()
 }
 
-// request body shared by the physics-based PV endpoints
 export function buildPvRequest(data) {
   const preset = PV_PRESETS.find(p => p.model === data.pvModel) || PV_PRESETS[0]
   const area = effectivePvArea(data)
@@ -140,8 +137,6 @@ async function postPv(path, data) {
   return res.json()
 }
 
-// detailed physics-based hourly PV generation (NASA POWER + solar geometry)
 export const fetchPvGeneration = (data) => postPv('/api/v1/pv-generation', data)
 
-// our PV engine benchmarked against PVGIS (runs a full-year simulation)
 export const fetchPvBenchmark = (data) => postPv('/api/v1/pv-generation/benchmark', data)

@@ -3,7 +3,6 @@ import { bessModels } from '../data/models'
 
 const sum = (arr, f) => arr.reduce((a, x) => a + (f(x) || 0), 0)
 
-// AnalyzeResponse (backend) -> the flat shape the dashboard and reports already read
 export function adaptAnalyzeResponse(resp, data) {
   const { summary = {}, economics = {}, metadata = {}, timeline = [] } = resp || {}
   const days = Math.max(1, metadata.duration_days || 1)
@@ -14,7 +13,6 @@ export function adaptAnalyzeResponse(resp, data) {
   const annualPV = dailyPV * 365
   const annualLoad = dailyLoad * 365
 
-  // energy-flow split derived from the per-step timeline (kWh over the window)
   const charge = sum(timeline, r => r.battery_charge_kwh)
   const discharge = sum(timeline, r => r.battery_discharge_kwh)
   const excess = sum(timeline, r => r.excess_pv_kwh)
@@ -22,7 +20,6 @@ export function adaptAnalyzeResponse(resp, data) {
   const gridTotal = sum(timeline, r => r.grid_import_kwh)
   const pvToLoad = Math.max(0, pvTotal - charge - excess) / days
 
-  // average 24h day aggregated from the timeline
   const buckets = Array.from({ length: 24 }, () => ({ pv: 0, load: 0, grid: 0, n: 0 }))
   for (const r of timeline) {
     const b = buckets[new Date(r.timestamp).getHours()]
@@ -38,7 +35,6 @@ export function adaptAnalyzeResponse(resp, data) {
     grid: Math.round(b.n ? b.grid / b.n : 0),
   }))
 
-  // daily totals over the window, then per-weekday averages
   const byDate = new Map()
   for (const r of timeline) {
     const d = new Date(r.timestamp)
@@ -59,7 +55,6 @@ export function adaptAnalyzeResponse(resp, data) {
     date: `${o.date.getDate()}/${o.date.getMonth() + 1}`,
     actual: Math.round(o.load), forecast: Math.round(o.forecast),
   }))
-  // weekly totals, grouped by calendar week (Monday start)
   const byWeek = new Map()
   for (const o of dailyAgg) {
     const m = new Date(o.date)
@@ -75,7 +70,6 @@ export function adaptAnalyzeResponse(resp, data) {
     pv: Math.round(w.pv), load: Math.round(w.load), grid: Math.round(w.grid),
   }))
 
-  // monthly totals, grouped by calendar month
   const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
   const byMonth = new Map()
   for (const o of dailyAgg) {
@@ -132,7 +126,6 @@ export function adaptAnalyzeResponse(resp, data) {
     forecastDaily,
     campusName: data.campusName || 'BAU Kemerburgaz',
     runAt: new Date().toISOString(),
-    // extra backend metrics surfaced in the UI
     selfConsumption: summary.self_consumption_ratio != null ? +(summary.self_consumption_ratio * 100).toFixed(1) : null,
     renewableFraction: summary.renewable_energy_fraction != null ? +(summary.renewable_energy_fraction * 100).toFixed(1) : null,
     pvToBessRatio: summary.pv_to_bess_ratio ?? null,
@@ -143,7 +136,6 @@ export function adaptAnalyzeResponse(resp, data) {
     npv: economics.npv ?? null,
     totalCapex: economics.total_capex ?? null,
     dailyRef: resp?.daily_ref || [],
-    // rich backend payload kept for the reports page and the suggestions UI
     summary,
     economics,
     suggestions: resp?.suggestions || [],

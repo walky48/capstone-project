@@ -48,8 +48,6 @@ export function buildHourlyLoad(data) {
   return { load, peakDemand: Math.round(peak), annualLoad: annual, dailyLoad }
 }
 
-// builds an hourly "timestamp,load_kwh" CSV the backend can forecast on.
-// covers enough history (>= 168h window) plus the simulation horizon.
 export function synthesizeLoadCsv(data) {
   const annual = data.loadMode === 'upload'
     ? (parseFloat(data.annualLoad) || 3800000)

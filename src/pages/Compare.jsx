@@ -11,7 +11,6 @@ const METRIC_CONFIG = [
   { key: 'payback', max: 20, unit: 'yrs', color: '#f59e0b' },
 ]
 
-// radar axes mapped to real metrics; "high" means a larger value scores better
 const RADAR_AXES = [
   { key: 'selfSuff', high: true },
   { key: 'lcoe', high: false },
