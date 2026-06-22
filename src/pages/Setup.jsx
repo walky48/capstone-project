@@ -1,11 +1,14 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Check, ChevronRight, ChevronLeft, MapPin, Zap, Sun, Upload, Car, Building2, LayoutGrid, Wand2, Database } from 'lucide-react'
+import { Check, ChevronRight, ChevronLeft, MapPin, Zap, Sun, Upload, Car, Building2, LayoutGrid, Wand2, Database, Battery } from 'lucide-react'
 import Card from '../components/ui/Card'
-import { pvModels, bessModels } from '../data/models'
+import { bessModels } from '../data/models'
+import { PV_PRESETS } from '../data/pvPresets'
 import { computeSimulation, effectivePvArea } from '../utils/sim'
 import { buildHourlyLoad, defaultPeakGrid, DAYS } from '../utils/loadProfile'
 import { geocodeCity, reverseGeocode } from '../utils/geocode'
+import { fetchPvModels, runAnalyze, isApiConfigured } from '../utils/api'
+import { adaptAnalyzeResponse } from '../utils/adapter'
 
 const steps = [
   { id: 1, label: 'Campus Info', icon: MapPin, desc: 'Basic campus and location details' },
@@ -315,7 +318,7 @@ function Step1({ data, setData }) {
   )
 }
 
-const StepContent = ({ step, data, setData }) => {
+const StepContent = ({ step, data, setData, pvPresets, uploadFile, setUploadFile }) => {
   const upd = (k, v) => setData(d => ({ ...d, [k]: v }))
 
   if (step === 1) return <Step1 data={data} setData={setData} />
@@ -375,19 +378,24 @@ const StepContent = ({ step, data, setData }) => {
         ) : (
           <>
             <Field label="Upload Dataset" help="Time-series load data exported from your meter or utility portal">
-              <div style={{ border: '2px dashed #e2e8f0', borderRadius: 8, padding: '24px', textAlign: 'center', cursor: 'pointer', background: '#f8fafc' }}>
-                <Upload size={20} color="#94a3b8" style={{ margin: '0 auto 8px' }} />
-                <div style={{ fontSize: 13, color: '#64748b', marginBottom: 4 }}>Drag file or click to upload</div>
-                <div style={{ fontSize: 11, color: '#94a3b8' }}>CSV, XLSX · Max 10MB</div>
-              </div>
+              <label style={{ display: 'block', border: `2px dashed ${uploadFile ? '#2563eb' : '#e2e8f0'}`, borderRadius: 8, padding: '24px', textAlign: 'center', cursor: 'pointer', background: uploadFile ? '#eff6ff' : '#f8fafc' }}>
+                <input type="file" accept=".csv,text/csv" style={{ display: 'none' }} onChange={e => setUploadFile?.(e.target.files?.[0] || null)} />
+                <Upload size={20} color={uploadFile ? '#2563eb' : '#94a3b8'} style={{ margin: '0 auto 8px' }} />
+                <div style={{ fontSize: 13, color: uploadFile ? '#1d4ed8' : '#64748b', marginBottom: 4, fontWeight: uploadFile ? 600 : 400 }}>
+                  {uploadFile ? uploadFile.name : 'Click to upload a CSV'}
+                </div>
+                <div style={{ fontSize: 11, color: '#94a3b8' }}>{uploadFile ? 'Click again to replace' : 'CSV · timestamp + load column · Max 10MB'}</div>
+              </label>
             </Field>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 24px' }}>
               <Field label="Annual Consumption (kWh)" help="Total over 12 months, read from the dataset"><Input type="number" value={data.annualLoad} onChange={e => upd('annualLoad', e.target.value)} /></Field>
-              <Field label="Sampling Resolution" help="Time step between rows in the dataset">
-                <TagSelect options={['15 min', '30 min', '1 hour', '1 day']} value={data.dataDuration} onChange={v => upd('dataDuration', v)} />
+              <Field label="Sampling Resolution" help="Time step between rows — must match the backend (hourly / 30 / 15 min)">
+                <TagSelect options={['15 min', '30 min', '1 hour']} value={data.resolution} onChange={v => upd('resolution', v)} />
               </Field>
               <Field label="Start Date"><Input type="date" value={data.startDate} onChange={e => upd('startDate', e.target.value)} /></Field>
               <Field label="End Date"><Input type="date" value={data.endDate} onChange={e => upd('endDate', e.target.value)} /></Field>
+              <Field label="Timestamp Column" help="Column name holding the time (auto-detected if left default)"><Input value={data.timestampCol} onChange={e => upd('timestampCol', e.target.value)} /></Field>
+              <Field label="Load Column" help="Column name holding the load in kWh"><Input value={data.loadCol} onChange={e => upd('loadCol', e.target.value)} /></Field>
             </div>
             <button type="button" onClick={() => upd('cumulative', !data.cumulative)} style={{
               width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 8, cursor: 'pointer', textAlign: 'left',
@@ -411,43 +419,93 @@ const StepContent = ({ step, data, setData }) => {
   }
 
   if (step === 3) {
-    const selectedPV = pvModels[data.pvModel] || pvModels['JKM580N-72HL4-BDV']
+    const sectionHdr = { fontSize: 14, fontWeight: 600, color: '#0f172a', marginBottom: 12, paddingBottom: 8, borderBottom: '1px solid #e2e8f0' }
+    const presets = pvPresets?.length ? pvPresets : PV_PRESETS
+    const selectedPV = presets.find(p => p.model === data.pvModel) || presets[0] || {}
     const selectedBESS = bessModels[data.bessModel] || bessModels['Model A - LFP']
+    const useBess = data.useBess !== false
 
     return (
-      <div>
-        <div style={{ fontSize: 14, fontWeight: 600, color: '#0f172a', marginBottom: 12, paddingBottom: 8, borderBottom: '1px solid #e2e8f0' }}>Solar Panel (PV) Configuration</div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 24px', marginBottom: 24 }}>
-          <Field label="PV Model" style={{ gridColumn: '1/-1' }} help={`Panel Model Name: ${data.pvModel}`}>
-            <Select value={data.pvModel} onChange={e => upd('pvModel', e.target.value)}>
-              {Object.keys(pvModels).map(m => <option key={m} value={m}>{m}</option>)}
-            </Select>
-          </Field>
+      <div style={{ display: 'grid', gap: 28 }}>
+        <div>
+          <div style={sectionHdr}>Solar Panel (PV) Configuration</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 24px' }}>
+            <Field label="PV Model" style={{ gridColumn: '1/-1' }} help="Datasheet pulled from the backend model library">
+              <Select value={data.pvModel} onChange={e => upd('pvModel', e.target.value)}>
+                {presets.map(p => <option key={p.model} value={p.model}>{p.label || p.model}</option>)}
+              </Select>
+            </Field>
+            <Field label="Rated Power (Wp)"><Input disabled value={selectedPV.panel_power_wp ?? ''} /></Field>
+            <Field label="Panel Size (m)"><Input disabled value={selectedPV.panel_width_m ? `${selectedPV.panel_width_m} x ${selectedPV.panel_length_m}` : ''} /></Field>
+            <Field label="Annual Degradation"><Input disabled value={selectedPV.degradation_rate != null ? (selectedPV.degradation_rate * 100).toFixed(2) + '% / yr' : ''} /></Field>
+            <Field label="Performance Ratio" help="All-inclusive PR (soiling, mismatch, wiring, inverter, thermal)">
+              <Input type="number" step="0.005" min="0" max="1" value={data.performanceRatio} onChange={e => upd('performanceRatio', e.target.value)} />
+            </Field>
+            <div style={{ gridColumn: '1/-1' }}>
+              <Field label="Solar Data Source">
+                <TagSelect options={['NASA POWER API', 'PVGIS', 'PV*SOL', 'On-site Measurement']} value={data.solarData} onChange={v => upd('solarData', v)} />
+              </Field>
+            </div>
+          </div>
+        </div>
 
-          <Field label="PV Capacity (kWp)"><Input disabled value={selectedPV.kwp} /></Field>
-          <Field label="Panel Technology"><Input disabled value={selectedPV.tech} /></Field>
-          <Field label="Module Efficiency" style={{ gridColumn: '1/-1' }}><Input disabled value={selectedPV.eff} /></Field>
-          <div style={{ gridColumn: '1/-1' }}>
-            <Field label="Solar Data Source">
-              <TagSelect options={['NASA POWER API', 'PVGIS', 'PV*SOL', 'On-site Measurement']} value={data.solarData} onChange={v => upd('solarData', v)} />
+        <div>
+          <div style={sectionHdr}>Battery (BESS) Configuration</div>
+          <button type="button" onClick={() => upd('useBess', !useBess)} style={{
+            width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 8, cursor: 'pointer', textAlign: 'left', marginBottom: useBess ? 16 : 0,
+            border: useBess ? '1px solid #2563eb' : '1px solid #e2e8f0', background: useBess ? '#eff6ff' : '#fff', transition: 'all 0.15s',
+          }}>
+            <div style={{ width: 20, height: 20, borderRadius: 5, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: useBess ? '#2563eb' : '#fff', border: useBess ? 'none' : '1.5px solid #cbd5e1' }}>
+              {useBess && <Check size={13} color="#fff" />}
+            </div>
+            <Battery size={17} color={useBess ? '#2563eb' : '#94a3b8'} style={{ flexShrink: 0 }} />
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: useBess ? '#1d4ed8' : '#334155' }}>Include Battery Storage</div>
+              <div style={{ fontSize: 11, color: '#64748b' }}>Off = PV-only scenario, no charge/discharge simulation</div>
+            </div>
+          </button>
+          {useBess && (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 24px' }}>
+              <Field label="BESS Model" style={{ gridColumn: '1/-1' }} help={`Battery System Type: ${data.bessModel}`}>
+                <Select value={data.bessModel} onChange={e => upd('bessModel', e.target.value)}>
+                  {Object.keys(bessModels).map(m => <option key={m} value={m}>{m}</option>)}
+                </Select>
+              </Field>
+              <Field label="BESS Capacity (kWh)"><Input disabled value={selectedBESS.cap} /></Field>
+              <Field label="Battery Technology"><Input disabled value={selectedBESS.tech} /></Field>
+              <Field label="Power Converter (kW)"><Input disabled value={selectedBESS.power} /></Field>
+              <Field label="Depth of Discharge (DoD %)"><Input disabled value={`${selectedBESS.dod}%`} /></Field>
+              <Field label="Storage Duration (hours)"><Input disabled value={`${selectedBESS.duration} h`} /></Field>
+              <Field label="Round-trip Efficiency (%)"><Input disabled value={`${selectedBESS.rte}%`} /></Field>
+            </div>
+          )}
+        </div>
+
+        <div>
+          <div style={sectionHdr}>Simulation</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 24px' }}>
+            <Field label="Simulation Duration (days)" help="How many days the dispatch is simulated (1-365)">
+              <Input type="number" min="1" max="365" value={data.simDurationDays} onChange={e => upd('simDurationDays', e.target.value)} />
+            </Field>
+            <Field label="Optimization Priority" help="Drives the planning suggestions from the backend">
+              <TagSelect options={['cost_saving', 'self_sufficiency', 'co2_reduction']} value={data.priority} onChange={v => upd('priority', v)} />
             </Field>
           </div>
         </div>
 
-        <div style={{ fontSize: 14, fontWeight: 600, color: '#0f172a', marginBottom: 12, paddingBottom: 8, borderBottom: '1px solid #e2e8f0' }}>Battery (BESS) Configuration</div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 24px' }}>
-          <Field label="BESS Model" style={{ gridColumn: '1/-1' }} help={`Battery System Type: ${data.bessModel}`}>
-            <Select value={data.bessModel} onChange={e => upd('bessModel', e.target.value)}>
-              {Object.keys(bessModels).map(m => <option key={m} value={m}>{m}</option>)}
-            </Select>
-          </Field>
-
-          <Field label="BESS Capacity (kWh)"><Input disabled value={selectedBESS.cap} /></Field>
-          <Field label="Battery Technology"><Input disabled value={selectedBESS.tech} /></Field>
-          <Field label="Power Converter (kW)"><Input disabled value={selectedBESS.power} /></Field>
-          <Field label="Depth of Discharge (DoD %)"><Input disabled value={`${selectedBESS.dod}%`} /></Field>
-          <Field label="Storage Duration (hours)"><Input disabled value={`${selectedBESS.duration} h`} /></Field>
-          <Field label="Round-trip Efficiency (%)"><Input disabled value={`${selectedBESS.rte}%`} /></Field>
+        <div>
+          <div style={sectionHdr}>Economic Parameters (USD)</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 24px' }}>
+            <Field label="Electricity Tariff ($/kWh)"><Input type="number" step="0.01" value={data.electricityTariff} onChange={e => upd('electricityTariff', e.target.value)} /></Field>
+            <Field label="PV Cost ($/kWp)"><Input type="number" value={data.costPerKwp} onChange={e => upd('costPerKwp', e.target.value)} /></Field>
+            <Field label="BESS Cost ($/kWh)"><Input type="number" value={data.bessCostPerKwh} onChange={e => upd('bessCostPerKwh', e.target.value)} /></Field>
+            <Field label="Inverter Power (kW)"><Input type="number" value={data.inverterPowerKw} onChange={e => upd('inverterPowerKw', e.target.value)} /></Field>
+            <Field label="Inverter Unit Price ($)"><Input type="number" value={data.inverterUnitPrice} onChange={e => upd('inverterUnitPrice', e.target.value)} /></Field>
+            <Field label="System Lifetime (years)"><Input type="number" value={data.systemLifetimeYears} onChange={e => upd('systemLifetimeYears', e.target.value)} /></Field>
+            <Field label="Installation Rate" help="Fraction of equipment cost (labour, civil)"><Input type="number" step="0.01" value={data.installationRate} onChange={e => upd('installationRate', e.target.value)} /></Field>
+            <Field label="OPEX Rate (/yr)" help="Annual O&M as a fraction of CAPEX"><Input type="number" step="0.01" value={data.opexRate} onChange={e => upd('opexRate', e.target.value)} /></Field>
+            <Field label="Discount Rate"><Input type="number" step="0.01" value={data.discountRate} onChange={e => upd('discountRate', e.target.value)} /></Field>
+          </div>
         </div>
       </div>
     )
@@ -458,22 +516,35 @@ const StepContent = ({ step, data, setData }) => {
 
 const DRAFT_KEY = 'setup_draft'
 
+const DEFAULT_DATA = {
+  campusName: 'BAU Kemerburgaz', city: 'Istanbul', lat: '41.124', lon: '28.985',
+  buildings: '12',
+  sizingMode: 'single', roofArea: '5800', roofAreaPerBuilding: '480', extendedEnabled: false, parkingArea: '3000',
+  loadMode: 'generate', consumption: '3800000', loadWindow: '12m', windowStart: '', windowEnd: '', peakGrid: defaultPeakGrid(),
+  annualLoad: '3800000', resolution: '1 hour', cumulative: false, startDate: '', endDate: '',
+  timestampCol: 'timestamp', loadCol: 'load_kwh',
+  pvModel: 'Tiger Neo N-type 72HL4-BDV', performanceRatio: 0.885,
+  tilt: 33, azimuth: 'South', pvEff: 82, solarData: 'NASA POWER API',
+  bessModel: 'Model A - LFP', useBess: true,
+  simDurationDays: 7, priority: 'cost_saving',
+  costPerKwp: 800, bessCostPerKwh: 300, inverterPowerKw: 50, inverterUnitPrice: 2000,
+  installationRate: 0.15, opexRate: 0.01, electricityTariff: 0.12, systemLifetimeYears: 25, discountRate: 0.08,
+}
+
 export default function Setup() {
   const [step, setStep] = useState(1)
   const [data, setData] = useState(() => {
     try {
       const saved = localStorage.getItem(DRAFT_KEY)
-      return saved ? JSON.parse(saved) : {
-        campusName: 'BAU Kemerburgaz', city: 'Istanbul', lat: '41.124', lon: '28.985',
-        buildings: '12',
-        sizingMode: 'single', roofArea: '5800', roofAreaPerBuilding: '480', extendedEnabled: false, parkingArea: '3000',
-        loadMode: 'generate', consumption: '3800000', loadWindow: '12m', windowStart: '', windowEnd: '', peakGrid: defaultPeakGrid(),
-        annualLoad: '3800000', dataDuration: '1 hour', cumulative: false, startDate: '', endDate: '',
-        pvModel: 'JKM580N-72HL4-BDV', tilt: 33, azimuth: 'South', pvEff: 82, solarData: 'NASA POWER API',
-        bessModel: 'Model A - LFP',
-      }
-    } catch { return {} }
+      return saved ? { ...DEFAULT_DATA, ...JSON.parse(saved) } : DEFAULT_DATA
+    } catch { return DEFAULT_DATA }
   })
+  const [pvPresets, setPvPresets] = useState(PV_PRESETS)
+  useEffect(() => {
+    fetchPvModels().then(list => { if (list?.length) setPvPresets(list) })
+  }, [])
+  const [uploadFile, setUploadFile] = useState(null)
+  const [running, setRunning] = useState(false)
   const [draftSaved, setDraftSaved] = useState(false)
   const navigate = useNavigate()
 
@@ -483,11 +554,27 @@ export default function Setup() {
     setTimeout(() => setDraftSaved(false), 2000)
   }
 
-  function handleRunSimulation() {
+  async function handleRunSimulation() {
     localStorage.setItem(DRAFT_KEY, JSON.stringify(data))
-    const result = computeSimulation(data)
-    localStorage.setItem('simulation_result', JSON.stringify(result))
-    navigate('/dashboard')
+    setRunning(true)
+    try {
+      let result
+      if (isApiConfigured()) {
+        const resp = await runAnalyze(data, uploadFile)
+        result = adaptAnalyzeResponse(resp, data)
+      } else {
+        result = computeSimulation(data)
+      }
+      localStorage.setItem('simulation_result', JSON.stringify(result))
+      navigate('/dashboard')
+    } catch (e) {
+      console.error(e)
+      const result = computeSimulation(data)
+      localStorage.setItem('simulation_result', JSON.stringify(result))
+      navigate('/dashboard')
+    } finally {
+      setRunning(false)
+    }
   }
 
   const cur = steps[step - 1]
@@ -538,7 +625,7 @@ export default function Setup() {
               <div style={{ marginLeft: 'auto', fontSize: 11, color: '#94a3b8' }}>{step} / {steps.length}</div>
             </div>
             <div style={{ paddingTop: 20 }}>
-              <StepContent step={step} data={data} setData={setData} />
+              <StepContent step={step} data={data} setData={setData} pvPresets={pvPresets} uploadFile={uploadFile} setUploadFile={setUploadFile} />
             </div>
           </Card>
 
@@ -555,8 +642,8 @@ export default function Setup() {
                   Next <ChevronRight size={15} />
                 </button>
               ) : (
-                <button type="button" className="btn btn-success" onClick={handleRunSimulation}>
-                  <Zap size={15} /> Run Simulation
+                <button type="button" className="btn btn-success" onClick={handleRunSimulation} disabled={running}>
+                  <Zap size={15} /> {running ? 'Running…' : 'Run Simulation'}
                 </button>
               )}
             </div>

@@ -59,7 +59,14 @@ export default function Scenarios() {
     return () => document.removeEventListener('mousedown', handle)
   }, [filterOpen])
 
-  const allScenarios = [...SCENARIOS, ...customScenarios].filter(s => !hiddenIds.includes(s.id))
+  const sim = (() => { try { return JSON.parse(localStorage.getItem('simulation_result')) } catch { return null } })()
+  const currentScenario = sim ? {
+    id: 0, name: `${sim.campusName || 'Current'} (Current)`, tag: 'Active',
+    pv: sim.totalKWp || 0, bess: sim.bessCapacity || 0, selfSuff: sim.selfSufficiency || 0,
+    gridImport: sim.gridToLoad || 0, co2: sim.co2AvoidedDaily || 0, lcoe: sim.lcoe || 0,
+    capex: Math.round(sim.economics?.total_capex || 0), payback: sim.paybackYears || 0, color: '#2563eb',
+  } : null
+  const allScenarios = [...(currentScenario ? [currentScenario] : []), ...SCENARIOS, ...customScenarios].filter(s => !hiddenIds.includes(s.id))
   const colKeys = ['name', 'pv', 'bess', 'selfSuff', 'gridImport', 'co2', 'lcoe', 'payback']
   const cols = colKeys.map((key, i) => ({ key, label: t.scenarios.cols[i] }))
   const hasAdvFilter = advFilter.selfSuffMin > 0 || advFilter.pvMin > 0 || advFilter.paybackMax < 99
@@ -82,8 +89,8 @@ export default function Scenarios() {
     [t.scenarios.detail.selfSufficiency, `${sel.selfSuff}%`],
     [t.scenarios.detail.gridImport, `${sel.gridImport} kWh/day`],
     [t.scenarios.detail.co2Savings, `${sel.co2} kg/day`],
-    [t.scenarios.detail.lcoe, `₺${sel.lcoe}/kWh`],
-    [t.scenarios.detail.capex, `₺${sel.capex.toLocaleString()}`],
+    [t.scenarios.detail.lcoe, `$${sel.lcoe}/kWh`],
+    [t.scenarios.detail.capex, `$${sel.capex.toLocaleString()}`],
     [t.scenarios.detail.payback, `${sel.payback} yrs`],
   ] : []
 
@@ -306,7 +313,7 @@ export default function Scenarios() {
                   <td style={{ minWidth: 140 }}><SelfSuffBar value={row.selfSuff} /></td>
                   <td style={{ fontSize: 13, color: '#dc2626', fontWeight: 500 }}>{row.gridImport.toLocaleString()}</td>
                   <td style={{ fontSize: 13, color: '#10b981', fontWeight: 500 }}>{row.co2.toLocaleString()}</td>
-                  <td style={{ fontSize: 13, fontWeight: 600, color: '#7c3aed' }}>₺{row.lcoe}</td>
+                  <td style={{ fontSize: 13, fontWeight: 600, color: '#7c3aed' }}>{`$${row.lcoe}`}</td>
                   <td style={{ fontSize: 13, color: '#0f172a' }}>{row.payback}</td>
                   <td>
                     <div style={{ display: 'flex', gap: 6 }} onClick={e => e.stopPropagation()}>
@@ -374,8 +381,8 @@ export default function Scenarios() {
                   ['Self-Sufficiency (%)', 'selfSuff'],
                   ['Grid Import (kWh/day)', 'gridImport'],
                   ['CO₂ Savings (kg/day)', 'co2'],
-                  ['LCOE (₺/kWh)', 'lcoe'],
-                  ['CAPEX (₺)', 'capex'],
+                  ['LCOE ($/kWh)', 'lcoe'],
+                  ['CAPEX ($)', 'capex'],
                   ['Payback (yrs)', 'payback'],
                 ].map(([label, key]) => (
                   <div key={key}>

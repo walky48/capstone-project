@@ -47,3 +47,32 @@ export function buildHourlyLoad(data) {
 
   return { load, peakDemand: Math.round(peak), annualLoad: annual, dailyLoad }
 }
+
+// builds an hourly "timestamp,load_kwh" CSV the backend can forecast on.
+// covers enough history (>= 168h window) plus the simulation horizon.
+export function synthesizeLoadCsv(data) {
+  const annual = data.loadMode === 'upload'
+    ? (parseFloat(data.annualLoad) || 3800000)
+    : (annualConsumption(data) || 3800000)
+  const grid = validGrid(data.peakGrid)
+
+  const base = 0.40
+  const dayBump = h => 0.30 * Math.exp(-((h - 13) ** 2) / 32)
+  const PEAK = 1.0
+  const w = grid.map(row => row.map((on, h) => base + dayBump(h) + (on ? PEAK : 0)))
+  const weekTotal = w.reduce((s, row) => s + row.reduce((a, b) => a + b, 0), 0)
+  const k = weekTotal > 0 ? (annual / 52) / weekTotal : 0
+
+  const days = Math.max(28, (parseInt(data.simDurationDays, 10) || 7) + 14)
+  const start = new Date()
+  start.setMinutes(0, 0, 0)
+  start.setTime(start.getTime() - days * 24 * 3600000)
+
+  const rows = ['timestamp,load_kwh']
+  for (let i = 0; i < days * 24; i++) {
+    const ts = new Date(start.getTime() + i * 3600000)
+    const dow = (ts.getDay() + 6) % 7
+    rows.push(`${ts.toISOString()},${(w[dow][ts.getHours()] * k).toFixed(3)}`)
+  }
+  return rows.join('\n')
+}

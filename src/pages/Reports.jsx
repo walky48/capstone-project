@@ -4,12 +4,13 @@ import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import { Sparkles, BarChart3, Wallet, Settings2, Download, Clock, Trash2, FileText, ChevronRight } from 'lucide-react'
 import Card from '../components/ui/Card'
-import { pvModels, bessModels } from '../data/models'
+import { bessModels } from '../data/models'
+import { PV_PRESETS } from '../data/pvPresets'
 import { useLang } from '../hooks/useLang'
 
 const BLUE = [37, 99, 235]
 const GRAY = [100, 116, 139]
-const TARIFF_TL = 3.5
+const TARIFF_USD = 0.12
 
 const fmt = n => Math.round(Number(n) || 0).toLocaleString('en-US')
 const pdfSafe = s => String(s ?? '')
@@ -52,8 +53,11 @@ function buildReport(type, sim, draft) {
     y = doc.lastAutoTable.finalY + 7
   }
 
-  const annualSavings = Math.round(sim.annualPV * 0.70 * TARIFF_TL)
-  const capex = Math.round((sim.paybackYears || 0) * annualSavings)
+  const econ = sim.economics || {}
+  const tariff = Number(draft.electricityTariff) || TARIFF_USD
+  const lifetime = parseInt(draft.systemLifetimeYears, 10) || 25
+  const annualSavings = Math.round(econ.annual_cost_saving ?? (sim.annualPV * 0.70 * tariff))
+  const capex = Math.round(econ.total_capex ?? ((sim.paybackYears || 0) * annualSavings))
 
   if (type === 'executive') {
     section('Project')
@@ -74,7 +78,7 @@ function buildReport(type, sim, draft) {
       ['CO2 Avoided', `${fmt(sim.co2AvoidedDaily)} kg/day`],
     ])
     doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.setTextColor(40, 40, 40)
-    const narrative = `The proposed ${fmt(sim.totalKWp)} kWp solar system paired with a ${fmt(sim.bessCapacity)} kWh battery covers ${sim.selfSufficiency}% of the campus daily demand, generating ${fmt(sim.dailyPV)} kWh/day and avoiding ${fmt(sim.co2AvoidedDaily)} kg of CO2 per day. The estimated payback period is ${sim.paybackYears} years at an LCOE of TL ${sim.lcoe}/kWh.`
+    const narrative = `The proposed ${fmt(sim.totalKWp)} kWp solar system paired with a ${fmt(sim.bessCapacity)} kWh battery covers ${sim.selfSufficiency}% of the campus daily demand, generating ${fmt(sim.dailyPV)} kWh/day and avoiding ${fmt(sim.co2AvoidedDaily)} kg of CO2 per day. The estimated payback period is ${sim.paybackYears} years at an LCOE of $${sim.lcoe}/kWh.`
     doc.text(doc.splitTextToSize(narrative, 182), 14, y)
   }
 
@@ -100,28 +104,30 @@ function buildReport(type, sim, draft) {
   if (type === 'financial') {
     section('Financial Summary')
     table([['Metric', 'Value']], [
-      ['CAPEX (estimated)', `TL ${fmt(capex)}`],
-      ['Annual Savings', `TL ${fmt(annualSavings)}`],
+      ['CAPEX (total)', `$${fmt(capex)}`],
+      ['Annual Savings', `$${fmt(annualSavings)}`],
       ['Payback Period', `${sim.paybackYears} yrs`],
-      ['LCOE', `TL ${sim.lcoe}/kWh`],
+      ['LCOE', `$${sim.lcoe}/kWh`],
+      ['NPV (lifetime)', econ.npv != null ? `$${fmt(econ.npv)}` : '-'],
       ['Annual PV Generation', `${fmt(sim.annualPV)} kWh/yr`],
       ['CO2 Avoided', `${fmt(sim.co2AvoidedDaily * 365)} kg/yr`],
     ])
     doc.setFontSize(8); doc.setFont('helvetica', 'italic'); doc.setTextColor(...GRAY)
-    doc.text(`Assumes a tariff of TL ${TARIFF_TL}/kWh and a 25-year system lifetime.`, 14, y)
+    doc.text(`Assumes a tariff of $${tariff}/kWh and a ${lifetime}-year system lifetime.`, 14, y)
   }
 
   if (type === 'technical') {
-    const pv = pvModels[draft.pvModel] || {}
+    const pv = PV_PRESETS.find(p => p.model === draft.pvModel) || {}
     const bess = bessModels[draft.bessModel] || {}
     section('Solar PV')
     table([['Parameter', 'Value']], [
       ['PV Model', pdfSafe(draft.pvModel)],
-      ['Panel Capacity', `${pv.kwp || '-'} kWp`],
-      ['Panel Technology', pdfSafe(pv.tech)],
-      ['Module Efficiency', pdfSafe(pv.eff)],
+      ['Rated Power', pv.panel_power_wp ? `${pv.panel_power_wp} Wp` : '-'],
+      ['Panel Size', pv.panel_width_m ? `${pv.panel_width_m} x ${pv.panel_length_m} m` : '-'],
+      ['Annual Degradation', pv.degradation_rate != null ? `${(pv.degradation_rate * 100).toFixed(2)}%/yr` : '-'],
+      ['Performance Ratio', draft.performanceRatio ?? '-'],
       ['Installed Capacity', `${fmt(sim.totalKWp)} kWp`],
-      ['Tilt / Azimuth', `${draft.tilt ?? 33} deg / ${pdfSafe(draft.azimuth ?? 'South')}`],
+      ['Module Efficiency', pdfSafe(sim.pvEff || '-')],
       ['Solar Data Source', pdfSafe(draft.solarData ?? 'NASA POWER API')],
     ])
     section('Battery (BESS)')

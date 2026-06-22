@@ -5,7 +5,7 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { Sun, Battery, Zap, TrendingDown, RefreshCw, Download, X, FolderOpen } from 'lucide-react'
 import Card from '../components/ui/Card'
 import ChartTooltip from '../components/ui/Tooltip'
-import { hourly, weekly, monthly, yearly } from '../data/dashboard'
+import { hourly, weekly } from '../data/dashboard'
 import { useLang } from '../hooks/useLang'
 
 const KPI_DATA = [
@@ -24,11 +24,11 @@ const FLOW_DATA = [
 
 const STATS_DATA = [
   { key: 'specificYield', value: '1,378 kWh/kWp', color: '#f59e0b' },
-  { key: 'lcoe', value: '₺0.77/kWh', color: '#7c3aed' },
+  { key: 'lcoe', value: '$0.77/kWh', color: '#7c3aed' },
   { key: 'co2Avoided', value: '1,229 kg/day', color: '#10b981' },
   { key: 'paybackPeriod', value: '5.0 yrs', color: '#0891b2' },
   { key: 'panelModel', value: 'JKM570N · 22.07%', color: '#64748b' },
-  { key: 'gridCO2', value: '452 g CO₂/kWh', color: '#dc2626' },
+  { key: 'gridCO2', value: '500 g CO₂/kWh', color: '#dc2626' },
 ]
 
 const BLUE = [37, 99, 235]
@@ -65,12 +65,6 @@ export default function Dashboard() {
     try { return JSON.parse(localStorage.getItem('simulation_result')) } catch { return null }
   }, [])
 
-  const scaleRow = (row, s) => {
-    const pv = Math.round(row.pv * s.pvScale)
-    const load = Math.round(row.load * s.loadScale)
-    return { ...row, pv, load, grid: Math.max(0, load - pv) }
-  }
-
   const activeKPIs = sim ? [
     { key: 'pvGeneration', value: fmtNum(sim.dailyPV), unit: 'kWh/day', sub: `${fmtNum(sim.totalKWp)} kWp installed`, icon: Sun, color: '#f59e0b', bg: '#fffbeb', border: '#fde68a' },
     { key: 'energyDemand', value: fmtNum(sim.dailyLoad), unit: 'kWh/day', sub: `${fmtNum(sim.annualLoad / 1000)} MWh/yr`, icon: Zap, color: '#0891b2', bg: '#ecfeff', border: '#a5f3fc' },
@@ -87,24 +81,25 @@ export default function Dashboard() {
 
   const activeStats = sim ? [
     { key: 'specificYield', value: `${fmtNum(sim.specificYield)} kWh/kWp`, color: '#f59e0b' },
-    { key: 'lcoe', value: `₺${sim.lcoe}/kWh`, color: '#7c3aed' },
+    { key: 'lcoe', value: `$${sim.lcoe}/kWh`, color: '#7c3aed' },
     { key: 'co2Avoided', value: `${fmtNum(sim.co2AvoidedDaily)} kg/day`, color: '#10b981' },
     { key: 'paybackPeriod', value: `${sim.paybackYears} yrs`, color: '#0891b2' },
-    { key: 'panelModel', value: sim.pvModel ? sim.pvModel.replace('-72HL4-BDV', '') + ' · ' + sim.pvEff : 'JKM570N · 22.07%', color: '#64748b' },
-    { key: 'gridCO2', value: '452 g CO₂/kWh', color: '#dc2626' },
+    { key: 'panelModel', value: sim.pvModel ? `${sim.pvModel} · ${sim.pvEff}` : 'JKM570N · 22.07%', color: '#64748b' },
+    { key: 'gridCO2', value: '500 g CO₂/kWh', color: '#dc2626' },
   ] : STATS_DATA
 
-  const activeHourly = sim?.hourlyProfile?.length ? sim.hourlyProfile : (sim ? hourly.map(r => scaleRow(r, sim)) : hourly)
-  const activeWeekly = sim ? weekly.map(r => scaleRow(r, sim)) : weekly
-  const activeMonthly = sim ? monthly.map(r => scaleRow(r, sim)) : monthly
-  const activeYearly = sim ? yearly.map(r => scaleRow(r, sim)) : yearly
+  const activeHourly = sim?.hourly?.length ? sim.hourly : (sim?.hourlyProfile?.length ? sim.hourlyProfile : hourly)
+  const activeDaily = sim?.daily?.length ? sim.daily : weekly
+  const activeWeekly = sim?.weekly?.length ? sim.weekly : weekly
 
   const bessChargePct = sim ? sim.bessChargePct : 64
   const bessCapacityDisplay = sim ? sim.bessCapacity : 1500
+  const bessPower = sim ? sim.bessPower : 375
+  const bessState = sim ? sim.bessState : 'Charging'
   const bessChargedKwh = Math.round(bessCapacityDisplay * 0.9 * bessChargePct / 100)
 
-  const chartData = [activeHourly, activeWeekly, activeMonthly, activeYearly][range]
-  const xKey = ['hour', 'day', 'month', 'year'][range]
+  const chartData = [activeHourly, activeDaily, activeWeekly][range]
+  const xKey = ['hour', 'day', 'day'][range]
 
   const kpis = activeKPIs.map(k => ({ ...k, label: t.dashboard.kpis[k.key] }))
   const flows = activeFlows.map((f, i) => ({ ...f, label: t.dashboard.flows[i] }))
@@ -125,7 +120,7 @@ export default function Dashboard() {
     doc.setTextColor(255, 255, 255)
     doc.setFontSize(10)
     doc.setFont('helvetica', 'bold')
-    doc.text('BAU Kemerburgaz Campus  ·  Dashboard Export', 14, 11)
+    doc.text(`${pdfSafe(sim?.campusName || 'BAU Kemerburgaz')} Campus  -  Dashboard Export`, 14, 11)
     doc.setFontSize(8)
     doc.setFont('helvetica', 'normal')
     doc.text(new Date().toLocaleString(), 196, 11, { align: 'right' })
@@ -182,9 +177,8 @@ export default function Dashboard() {
         addDataTable(chartData, xKey, `Energy Balance — ${rangeLabel}`)
       } else {
         addDataTable(activeHourly, 'hour', 'Energy Balance — Hourly')
+        addDataTable(activeDaily, 'day', 'Energy Balance — Daily')
         addDataTable(activeWeekly, 'day', 'Energy Balance — Weekly')
-        addDataTable(activeMonthly, 'month', 'Energy Balance — Monthly')
-        addDataTable(activeYearly, 'year', 'Energy Balance — Yearly')
       }
     }
 
@@ -193,7 +187,7 @@ export default function Dashboard() {
       doc.setPage(i)
       doc.setFontSize(7)
       doc.setTextColor(...GRAY)
-      doc.text(`BAU Kemerburgaz · CEMS Dashboard  ·  Page ${i} of ${pages}`, 14, 291)
+      doc.text(`${pdfSafe(sim?.campusName || 'BAU Kemerburgaz')} - CEMS Dashboard  -  Page ${i} of ${pages}`, 14, 291)
     }
 
     return doc
@@ -212,7 +206,7 @@ export default function Dashboard() {
       const out = { exported: new Date().toISOString(), campus: sim?.campusName || 'BAU Kemerburgaz' }
       out.kpis = activeKPIs.map(k => ({ name: t.dashboard.kpis[k.key], value: k.value, unit: k.unit }))
       if (exportScope === 'current') { out.range = rangeLabel; out.chartData = chartData }
-      else if (exportScope === 'all') { out.hourly = activeHourly; out.weekly = activeWeekly; out.monthly = activeMonthly; out.yearly = activeYearly }
+      else if (exportScope === 'all') { out.hourly = activeHourly; out.daily = activeDaily; out.weekly = activeWeekly }
       blob = new Blob([JSON.stringify(out, null, 2)], { type: 'application/json' })
     } else {
       const block = (data, key) => {
@@ -224,9 +218,8 @@ export default function Dashboard() {
       if (exportScope === 'current') body += `== Energy Balance (${rangeLabel}) ==\n` + block(chartData, xKey)
       else if (exportScope === 'all') {
         body += '== Hourly ==\n' + block(activeHourly, 'hour') + '\n\n'
-        body += '== Weekly ==\n' + block(activeWeekly, 'day') + '\n\n'
-        body += '== Monthly ==\n' + block(activeMonthly, 'month') + '\n\n'
-        body += '== Yearly ==\n' + block(activeYearly, 'year')
+        body += '== Daily ==\n' + block(activeDaily, 'day') + '\n\n'
+        body += '== Weekly ==\n' + block(activeWeekly, 'day')
       }
       blob = new Blob([body], { type: 'text/csv' })
     }
@@ -347,9 +340,11 @@ export default function Dashboard() {
         <Card style={{ padding: '20px' }}>
           <div style={{ fontSize: 14, fontWeight: 600, color: '#0f172a', marginBottom: 4 }}>{t.dashboard.energyFlow}</div>
           <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 10 }}>{t.dashboard.energyFlowSub}</div>
-          <div style={{ fontSize: 11, color: '#92400e', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 5, padding: '5px 8px', marginBottom: 14 }}>
-            {t.dashboard.pvFlowNote}
-          </div>
+          {!sim && (
+            <div style={{ fontSize: 11, color: '#92400e', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 5, padding: '5px 8px', marginBottom: 14 }}>
+              {t.dashboard.pvFlowNote}
+            </div>
+          )}
           {flows.map(({ label, value, pct, color }) => (
             <div key={label} style={{ marginBottom: 12 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
@@ -366,15 +361,15 @@ export default function Dashboard() {
             <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
               <div style={{ flex: 1, background: '#ecfdf5', borderRadius: 6, padding: '6px 8px', border: '1px solid #bbf7d0' }}>
                 <div style={{ fontSize: 10, color: '#94a3b8', marginBottom: 2 }}>{t.dashboard.bessState}</div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: '#10b981' }}>⚡ {t.dashboard.bessCharging}</div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#10b981' }}>⚡ {bessState}</div>
               </div>
               <div style={{ flex: 1, background: '#f5f3ff', borderRadius: 6, padding: '6px 8px', border: '1px solid #ddd6fe' }}>
                 <div style={{ fontSize: 10, color: '#94a3b8', marginBottom: 2 }}>{t.dashboard.bessPower}</div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: '#7c3aed' }}>245 kW</div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#7c3aed' }}>{bessPower.toLocaleString()} kW</div>
               </div>
-              <div style={{ flex: 1, background: '#fff7ed', borderRadius: 6, padding: '6px 8px', border: '1px solid #fed7aa' }}>
+              <div style={{ flex: 1, background: '#eff6ff', borderRadius: 6, padding: '6px 8px', border: '1px solid #bfdbfe' }}>
                 <div style={{ fontSize: 10, color: '#94a3b8', marginBottom: 2 }}>{t.dashboard.bessTemp}</div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: '#f59e0b' }}>28°C</div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#2563eb' }}>{bessCapacityDisplay.toLocaleString()} kWh</div>
               </div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
@@ -383,10 +378,7 @@ export default function Dashboard() {
               </div>
               <span style={{ fontSize: 13, fontWeight: 700, color: '#7c3aed' }}>{bessChargePct}%</span>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <div style={{ fontSize: 11, color: '#94a3b8' }}>{bessChargedKwh.toLocaleString()} / {bessCapacityDisplay.toLocaleString()} kWh {t.dashboard.bessCharged}</div>
-              <div style={{ fontSize: 11, color: '#64748b', fontWeight: 500 }}>{t.dashboard.bessETA}: ~2.2h</div>
-            </div>
+            <div style={{ fontSize: 11, color: '#94a3b8' }}>{bessChargedKwh.toLocaleString()} / {bessCapacityDisplay.toLocaleString()} kWh {t.dashboard.bessCharged}</div>
           </div>
         </Card>
       </div>
@@ -396,9 +388,9 @@ export default function Dashboard() {
           <div style={{ fontSize: 14, fontWeight: 600, color: '#0f172a', marginBottom: 2 }}>{t.dashboard.monthlyBalance}</div>
           <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 16 }}>{t.dashboard.monthlyBalanceSub}</div>
           <ResponsiveContainer width="100%" height={140}>
-            <BarChart data={activeMonthly} barSize={10} margin={{ top: 0, right: 4, left: -20, bottom: 0 }}>
+            <BarChart data={activeDaily} barSize={10} margin={{ top: 0, right: 4, left: -20, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-              <XAxis dataKey="month" tick={{ fontSize: 10, fill: '#94a3b8' }} tickLine={false} axisLine={false} />
+              <XAxis dataKey="day" tick={{ fontSize: 10, fill: '#94a3b8' }} tickLine={false} axisLine={false} />
               <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} tickLine={false} axisLine={false} tickFormatter={fmtTick} />
               <Tooltip content={<ChartTooltip />} />
               <Bar dataKey="pv" name={t.dashboard.chartLabels.pv} fill="#f59e0b" radius={[3, 3, 0, 0]} />
@@ -417,6 +409,27 @@ export default function Dashboard() {
           ))}
         </Card>
       </div>
+
+      {sim?.suggestions?.length > 0 && (
+        <Card style={{ padding: '20px', marginTop: 16 }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: '#0f172a', marginBottom: 14 }}>{t.dashboard.suggestions}</div>
+          <div style={{ display: 'grid', gap: 10 }}>
+            {sim.suggestions.map((s, i) => {
+              const c = s.impact === 'high' ? '#dc2626' : s.impact === 'medium' ? '#f59e0b' : '#10b981'
+              return (
+                <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '10px 12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8 }}>
+                  <span style={{ flexShrink: 0, marginTop: 5, width: 8, height: 8, borderRadius: '50%', background: c }} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: '#0f172a' }}>{s.title}</div>
+                    <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>{s.message}</div>
+                  </div>
+                  <span style={{ flexShrink: 0, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: c, border: `1px solid ${c}55`, borderRadius: 4, padding: '2px 6px' }}>{s.impact}</span>
+                </div>
+              )
+            })}
+          </div>
+        </Card>
+      )}
 
       {exportOpen && (
         <div className="modal-overlay" onClick={() => setExportOpen(false)}>
