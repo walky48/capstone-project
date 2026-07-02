@@ -89,16 +89,8 @@ export const translations = {
       title: 'Settings', subtitle: 'Preferences & account',
       appearance: 'Appearance', language: 'Language', languageDesc: 'Interface display language',
       darkMode: 'Dark Mode', darkModeDesc: 'Switch to dark interface theme',
-      notifications: 'Notifications', emailAlerts: 'Email Alerts', emailAlertsDesc: 'Receive simulation results via email',
-      dashboardAlerts: 'Dashboard Alerts', dashboardAlertsDesc: 'Show in-app warnings and updates',
       about: 'About', save: 'Save Settings', saved: 'Saved!',
       langOptions: { en: 'English', tr: 'Turkish' },
-      alertStatus: {
-        sending: 'Sending confirmation to {email}…',
-        sent: 'Confirmation email sent to {email}.',
-        error: 'Could not send email. Check the EmailJS configuration.',
-        unconfigured: 'Email service not configured — add your EmailJS keys to .env.',
-      },
     },
     profile: {
       title: 'Profile', subtitle: 'Edit your account details', role: 'Software Eng. · BAU',
@@ -231,16 +223,8 @@ export const translations = {
       title: 'Ayarlar', subtitle: 'Tercihler ve hesap',
       appearance: 'Görünüm', language: 'Dil', languageDesc: 'Arayüz görüntüleme dili',
       darkMode: 'Karanlık Mod', darkModeDesc: 'Koyu arayüz temasına geç',
-      notifications: 'Bildirimler', emailAlerts: 'E-posta Uyarıları', emailAlertsDesc: 'Simülasyon sonuçlarını e-posta ile al',
-      dashboardAlerts: 'Panel Uyarıları', dashboardAlertsDesc: 'Uygulama içi uyarıları ve güncellemeleri göster',
       about: 'Hakkında', save: 'Ayarları Kaydet', saved: 'Kaydedildi!',
       langOptions: { en: 'İngilizce', tr: 'Türkçe' },
-      alertStatus: {
-        sending: '{email} adresine onay gönderiliyor…',
-        sent: 'Onay e-postası {email} adresine gönderildi.',
-        error: 'E-posta gönderilemedi. EmailJS yapılandırmasını kontrol edin.',
-        unconfigured: 'E-posta servisi yapılandırılmadı — EmailJS anahtarlarını .env dosyasına ekleyin.',
-      },
     },
     profile: {
       title: 'Profil', subtitle: 'Hesap bilgilerini düzenle', role: 'Yazılım Müh. · BAU',

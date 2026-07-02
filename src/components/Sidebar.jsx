@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react'
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, Settings, ListChecks, GitCompare, TrendingUp, Sun, FileText, LogOut, Menu, ChevronRight, SlidersHorizontal, X, Bell, Moon, User, Mail, Lock, Eye, EyeOff, Check } from 'lucide-react'
+import { LayoutDashboard, Settings, ListChecks, GitCompare, TrendingUp, Sun, FileText, LogOut, Menu, ChevronRight, SlidersHorizontal, X, Moon, User, Mail, Lock, Eye, EyeOff, Check } from 'lucide-react'
 import { useLang } from '../hooks/useLang'
 import { sendEmail, isEmailConfigured, genCode } from '../utils/email'
 
@@ -240,11 +240,6 @@ function ProfileModal({ onClose, onProfileSave }) {
 
 function SettingsModal({ onClose }) {
   const { lang, setLang, t } = useLang()
-  const profileEmail = localStorage.getItem('profile_email') || 'volkansahin499@gmail.com'
-  const profileName = localStorage.getItem('profile_name') || ''
-  const [emailAlerts, setEmailAlerts] = useState(() => localStorage.getItem('email_alerts') !== '0')
-  const [alertStatus, setAlertStatus] = useState('') 
-  const [dashboardAlerts, setDashboardAlerts] = useState(true)
   const [darkMode, setDarkMode] = useState(() => document.documentElement.getAttribute('data-theme') === 'dark')
   const [pendingLang, setPendingLang] = useState(lang)
   const [saved, setSaved] = useState(false)
@@ -254,26 +249,6 @@ function SettingsModal({ onClose }) {
     document.documentElement.setAttribute('data-theme', val ? 'dark' : 'light')
     localStorage.setItem('theme', val ? 'dark' : 'light')
   }
-
-  
-  const handleEmailAlerts = async (val) => {
-    setEmailAlerts(val)
-    localStorage.setItem('email_alerts', val ? '1' : '0')
-    if (!val) { setAlertStatus(''); return }
-    if (!isEmailConfigured()) { setAlertStatus('unconfigured'); return }
-    setAlertStatus('sending')
-    try {
-      await sendEmail({
-        toEmail: profileEmail, toName: profileName,
-        subject: 'CEMS - Email alerts enabled',
-        message: `Email alerts are now ON. Simulation results and warnings will be sent to ${profileEmail}.`,
-      })
-      setAlertStatus('sent')
-    } catch { setAlertStatus('error') }
-  }
-
-  const alertColor = { sending: '#475569', sent: '#047857', error: '#dc2626', unconfigured: '#92400e' }[alertStatus]
-  const alertText = alertStatus ? t.settings.alertStatus[alertStatus].replace('{email}', profileEmail) : ''
 
   const handleSave = () => {
     setLang(pendingLang)
@@ -313,13 +288,6 @@ function SettingsModal({ onClose }) {
               }
             />
             <SettingsRow label={t.settings.darkMode} desc={t.settings.darkModeDesc} right={<Toggle checked={darkMode} onChange={handleDarkMode} />} />
-          </div>
-
-          <div className="modal-section">
-            <SectionLabel><Bell size={10} style={{ display: 'inline', marginRight: 5 }} />{t.settings.notifications}</SectionLabel>
-            <SettingsRow label={t.settings.emailAlerts} desc={t.settings.emailAlertsDesc} right={<Toggle checked={emailAlerts} onChange={handleEmailAlerts} />} />
-            {alertStatus && <div style={{ fontSize: 11.5, color: alertColor, padding: '0 2px 8px' }}>{alertText}</div>}
-            <SettingsRow label={t.settings.dashboardAlerts} desc={t.settings.dashboardAlertsDesc} right={<Toggle checked={dashboardAlerts} onChange={setDashboardAlerts} />} />
           </div>
 
           <div className="modal-section">
